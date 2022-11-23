@@ -4,11 +4,52 @@ Author: [A_K_Nain](https://twitter.com/A_K_Nain)
 Date created: 2021/05/29
 Last modified: 2021/10/31
 Description: Implement an image captioning model using a CNN and a Transformer.
+
+## Download the dataset
+
+We will be using the Flickr8K dataset for this tutorial. This dataset comprises over 8,000 images, 
+that are each paired with five different captions.
+
+Download from the terminal or shell
+$ wget -q https://github.com/jbrownlee/Datasets/releases/download/Flickr8k/Flickr8k_Dataset.zip
+$ wget -q https://github.com/jbrownlee/Datasets/releases/download/Flickr8k/Flickr8k_text.zip
+$ unzip -qq Flickr8k_Dataset.zip
+$ unzip -qq Flickr8k_text.zip
+$ rm Flickr8k_Dataset.zip Flickr8k_text.zip
+
+## Vectorizing the text data
+
+We'll use the `TextVectorization` layer to vectorize the text data, that is to say, to turn the
+original strings into integer sequences where each integer represents the index of a word in a 
+vocabulary. We will use a custom string standardization scheme (strip punctuation characters 
+except `<` and `>`) and the default splitting scheme (split on whitespace).
+
+## Building a `tf.data.Dataset` pipeline for training
+
+We will generate pairs of images and corresponding captions using a 'tf.data.Dataset' object.
+The pipeline consists of two steps:
+
+1. Read the image from the disk
+2. Tokenize all the five captions corresponding to the image
+
+## Building the model
+
+Our image captioning architecture consists of three models:
+
+1. A CNN: used to extract the image features
+2. A TransformerEncoder: The extracted image features are then passed to a Transformer
+                    based encoder that generates a new representation of the inputs
+3. A TransformerDecoder: This model takes the encoder output and the text data
+                    (sequences) as inputs and tries to learn to generate the caption.
+
+## End Notes
+
+We saw that the model starts to generate reasonable captions after a few epochs. To keep
+this example easily runnable, we have trained it with a few constraints, like a minimal
+number of attention heads. To improve the predictions, you can try changing these training
+settings and find a good model for your use case.
 """
 
-"""
-## Setup
-"""
 
 import os
 import re
@@ -26,22 +67,8 @@ seed = 111
 np.random.seed(seed)
 tf.random.set_seed(seed)
 
-"""
+
 ## Download the dataset
-
-We will be using the Flickr8K dataset for this tutorial. This dataset comprises over
-8,000 images, that are each paired with five different captions.
-"""
-
-
-"""shell
-wget -q https://github.com/jbrownlee/Datasets/releases/download/Flickr8k/Flickr8k_Dataset.zip
-wget -q https://github.com/jbrownlee/Datasets/releases/download/Flickr8k/Flickr8k_text.zip
-unzip -qq Flickr8k_Dataset.zip
-unzip -qq Flickr8k_text.zip
-rm Flickr8k_Dataset.zip Flickr8k_text.zip
-"""
-
 
 # Path to the images
 IMAGES_PATH = "/home/mike/datasets/Flicker8K/Flicker8k_Dataset"
@@ -66,17 +93,14 @@ BATCH_SIZE = 64
 EPOCHS = 30
 AUTOTUNE = tf.data.AUTOTUNE
 
-"""
-## Preparing the dataset
-"""
 
+## Preparing the dataset
 
 def load_captions_data(filename):
-    """Loads captions (text) data and maps them to corresponding images.
-
+    """
+    Loads captions (text) data and maps them to corresponding images.
     Args:
         filename: Path to the text file containing caption data.
-
     Returns:
         caption_mapping: Dictionary mapping image names and the corresponding captions
         text_data: List containing all the available captions
@@ -123,13 +147,12 @@ def load_captions_data(filename):
 
 
 def train_val_split(caption_data, train_size=0.8, shuffle=True):
-    """Split the captioning dataset into train and validation sets.
-
+    """
+    Split the captioning dataset into train and validation sets.
     Args:
         caption_data (dict): Dictionary containing the mapped caption data
         train_size (float): Fraction of all the full dataset to use as training data
         shuffle (bool): Whether to shuffle the dataset before splitting
-
     Returns:
         Traning and validation datasets as two separated dicts
     """
@@ -163,17 +186,8 @@ train_data, valid_data = train_val_split(captions_mapping)
 print("Number of training samples: ", len(train_data))
 print("Number of validation samples: ", len(valid_data))
 
-"""
+
 ## Vectorizing the text data
-
-We'll use the `TextVectorization` layer to vectorize the text data,
-that is to say, to turn the
-original strings into integer sequences where each integer represents the index of
-a word in a vocabulary. We will use a custom string standardization scheme
-(strip punctuation characters except `<` and `>`) and the default
-splitting scheme (split on whitespace).
-"""
-
 
 def custom_standardization(input_string):
     lowercase = tf.strings.lower(input_string)
@@ -202,16 +216,7 @@ image_augmentation = keras.Sequential(
 )
 
 
-"""
 ## Building a `tf.data.Dataset` pipeline for training
-
-We will generate pairs of images and corresponding captions using a `tf.data.Dataset` object.
-The pipeline consists of two steps:
-
-1. Read the image from the disk
-2. Tokenize all the five captions corresponding to the image
-"""
-
 
 def decode_and_resize(img_path):
     img = tf.io.read_file(img_path)
@@ -240,18 +245,7 @@ train_dataset = make_dataset(list(train_data.keys()), list(train_data.values()))
 valid_dataset = make_dataset(list(valid_data.keys()), list(valid_data.values()))
 
 
-"""
 ## Building the model
-
-Our image captioning architecture consists of three models:
-
-1. A CNN: used to extract the image features
-2. A TransformerEncoder: The extracted image features are then passed to a Transformer
-                    based encoder that generates a new representation of the inputs
-3. A TransformerDecoder: This model takes the encoder output and the text data
-                    (sequences) as inputs and tries to learn to generate the caption.
-"""
-
 
 def get_cnn_model():
     base_model = efficientnet.EfficientNetB0(
@@ -531,10 +525,8 @@ caption_model = ImageCaptioningModel(
     image_aug=image_augmentation,
 )
 
-"""
-## Model training
-"""
 
+## Model training
 
 # Define the loss function
 cross_entropy = keras.losses.SparseCategoricalCrossentropy(
@@ -580,9 +572,8 @@ caption_model.fit(
     callbacks=[early_stopping],
 )
 
-"""
+
 ## Check sample predictions
-"""
 
 vocab = vectorization.get_vocabulary()
 index_lookup = dict(zip(range(len(vocab)), vocab))
@@ -630,12 +621,3 @@ def generate_caption():
 generate_caption()
 generate_caption()
 generate_caption()
-
-"""
-## End Notes
-
-We saw that the model starts to generate reasonable captions after a few epochs. To keep
-this example easily runnable, we have trained it with a few constraints, like a minimal
-number of attention heads. To improve the predictions, you can try changing these training
-settings and find a good model for your use case.
-"""
