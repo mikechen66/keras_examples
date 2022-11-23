@@ -154,9 +154,16 @@ import tensorflow_datasets as tfds
 import tensorflow_hub as hub
 from tensorflow import keras
 from tensorflow.keras import layers
+from numba import cuda
 
 tfds.disable_progress_bar()
 tf.keras.utils.set_random_seed(42)
+
+
+# Set up the GPU to avoid the runtime error: Could not create cuDNN handle...
+gpus = tf.config.experimental.list_physical_devices('GPU')
+for gpu in gpus:
+    tf.config.experimental.set_memory_growth(gpu, True)
 
 
 ## Constants
@@ -591,3 +598,8 @@ deit_distiller.compile(
     distillation_loss_fn=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
 )
 _ = deit_distiller.fit(train_dataset, validation_data=val_dataset, epochs=NUM_EPOCHS)
+
+
+# Release the GPU memory
+cuda.select_device(0)
+cuda.close()
