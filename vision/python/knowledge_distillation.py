@@ -4,29 +4,76 @@ Author: [Kenneth Borup](https://twitter.com/Kennethborup)
 Date created: 2020/09/01
 Last modified: 2020/09/01
 Description: Implementation of classical Knowledge Distillation.
-"""
 
-"""
 ## Introduction to Knowledge Distillation
 
-Knowledge Distillation is a procedure for model
-compression, in which a small (student) model is trained to match a large pre-trained
-(teacher) model. Knowledge is transferred from the teacher model to the student
-by minimizing a loss function, aimed at matching softened teacher logits as well as
-ground-truth labels.
-
-The logits are softened by applying a "temperature" scaling function in the softmax,
-effectively smoothing out the probability distribution and revealing
-inter-class relationships learned by the teacher.
+Knowledge Distillation is a procedure for model compression, in which a small (student) 
+model is trained to match a large pre-trained (teacher) model. Knowledge is transferred 
+from the teacher model to the student by minimizing a loss function, aimed at matching 
+softened teacher logits as well as ground-truth labels. The logits are softened by 
+applying a temperature scaling function in the softmax, effectively smoothing out the 
+probability distribution and revealing inter-class relationships learned by the teacher.
 
 **Reference:**
 
-- [Hinton et al. (2015)](https://arxiv.org/abs/1503.02531)
+-[Hinton et al. (2015)](https://arxiv.org/abs/1503.02531)
+
+## Construct 'Distiller()' class
+
+The custom 'Distiller()'' class, overrides the 'Model' methods 'train_step', 'test_step',
+and 'compile()''. In order to use the distiller, we need to do the following:
+
+- A trained teacher model
+- A student model to train
+- A student loss function on the difference between student predictions and ground-truth
+- A distillation loss function, along with a `temperature`, on the difference between the
+  soft student predictions and the soft teacher labels
+- An `alpha` factor to weight the student and distillation loss
+- An optimizer for the student and (optional) metrics to evaluate performance
+
+In the 'train_step' method, we perform a forward pass of both the teacher and student,
+calculate the loss with weighting of the 'student_loss' and 'distillation_loss' by 'alpha' 
+and '1 - alpha', respectively, and perform the backward pass. Only the student weights are 
+updated, and therefore we only calculate the gradients for the student weights. In the 
+'test_step' method, we evaluate the student model on the provided dataset.
+
+## Create student and teacher models
+
+Initialy, we create a teacher model and a smaller student model. Both models are CNNs and 
+created using 'Sequential()'', but could be any Keras model.
+
+## Prepare the dataset
+
+The dataset used for training the teacher and distilling the teacher is [MNIST]
+(https://keras.io/api/datasets/mnist/), and the procedure would be equivalent for any other
+dataset, e.g.[CIFAR-10](https://keras.io/api/datasets/cifar10/), with a suitable choice
+of models. Both the student and teacher are trained on the training set and evaluated on
+the test set.
+
+## Train the teacher
+
+In knowledge distillation we assume that the teacher is trained and fixed. Thus, we start
+by training the teacher model on the training set in the usual way.
+
+## Distill teacher to student
+
+We have already trained the teacher model, and we only need to initialize a 'Distiller(
+student, teacher)' instance, 'compile()' it with the desired losses, hyperparameters and 
+optimizer, and distill the teacher to the student.
+
+## Train student from scratch for comparison
+
+We can also train an equivalent student model from scratch without the teacher, in order
+to evaluate the performance gain obtained by knowledge distillation.
+
+If the teacher is trained for 5 full epochs and the student is distilled on this teacher
+for 3 full epochs, you should in this example experience a performance boost compared to
+training the same student model from scratch, and even compared to the teacher itself.
+You should expect the teacher to have accuracy around 97.6%, the student trained from
+scratch should be around 97.6%, and the distilled student should be around 98.1%. Remove
+or try out different seeds to use different weight initializations.
 """
 
-"""
-## Setup
-"""
 
 import tensorflow as tf
 from tensorflow import keras
@@ -34,28 +81,7 @@ from tensorflow.keras import layers
 import numpy as np
 
 
-"""
-## Construct `Distiller()` class
-
-The custom `Distiller()` class, overrides the `Model` methods `train_step`, `test_step`,
-and `compile()`. In order to use the distiller, we need:
-
-- A trained teacher model
-- A student model to train
-- A student loss function on the difference between student predictions and ground-truth
-- A distillation loss function, along with a `temperature`, on the difference between the
-soft student predictions and the soft teacher labels
-- An `alpha` factor to weight the student and distillation loss
-- An optimizer for the student and (optional) metrics to evaluate performance
-
-In the `train_step` method, we perform a forward pass of both the teacher and student,
-calculate the loss with weighting of the `student_loss` and `distillation_loss` by `alpha` and
-`1 - alpha`, respectively, and perform the backward pass. Note: only the student weights are updated,
-and therefore we only calculate the gradients for the student weights.
-
-In the `test_step` method, we evaluate the student model on the provided dataset.
-"""
-
+## Construct Distiller() class
 
 class Distiller(keras.Model):
     def __init__(self, student, teacher):
@@ -72,8 +98,8 @@ class Distiller(keras.Model):
         alpha=0.1,
         temperature=3,
     ):
-        """Configure the distiller.
-
+        """
+        Configure the distiller.
         Args:
             optimizer: Keras optimizer for the student weights
             metrics: Keras metrics for evaluation
@@ -94,7 +120,6 @@ class Distiller(keras.Model):
     def train_step(self, data):
         # Unpack data
         x, y = data
-
         # Forward pass of teacher
         teacher_predictions = self.teacher(x, training=False)
 
@@ -154,13 +179,7 @@ class Distiller(keras.Model):
         return results
 
 
-"""
 ## Create student and teacher models
-
-Initialy, we create a teacher model and a smaller student model. Both models are
-convolutional neural networks and created using `Sequential()`,
-but could be any Keras model.
-"""
 
 # Create the teacher
 teacher = keras.Sequential(
@@ -193,15 +212,8 @@ student = keras.Sequential(
 # Clone student for later comparison
 student_scratch = keras.models.clone_model(student)
 
-"""
-## Prepare the dataset
 
-The dataset used for training the teacher and distilling the teacher is
-[MNIST](https://keras.io/api/datasets/mnist/), and the procedure would be equivalent for any other
-dataset, e.g. [CIFAR-10](https://keras.io/api/datasets/cifar10/), with a suitable choice
-of models. Both the student and teacher are trained on the training set and evaluated on
-the test set.
-"""
+## Prepare the dataset
 
 # Prepare the train and test dataset.
 batch_size = 64
@@ -215,12 +227,7 @@ x_test = x_test.astype("float32") / 255.0
 x_test = np.reshape(x_test, (-1, 28, 28, 1))
 
 
-"""
 ## Train the teacher
-
-In knowledge distillation we assume that the teacher is trained and fixed. Thus, we start
-by training the teacher model on the training set in the usual way.
-"""
 
 # Train teacher as usual
 teacher.compile(
@@ -233,13 +240,8 @@ teacher.compile(
 teacher.fit(x_train, y_train, epochs=5)
 teacher.evaluate(x_test, y_test)
 
-"""
-## Distill teacher to student
 
-We have already trained the teacher model, and we only need to initialize a
-`Distiller(student, teacher)` instance, `compile()` it with the desired losses,
-hyperparameters and optimizer, and distill the teacher to the student.
-"""
+## Distill teacher to student
 
 # Initialize and compile distiller
 distiller = Distiller(student=student, teacher=teacher)
@@ -258,12 +260,8 @@ distiller.fit(x_train, y_train, epochs=3)
 # Evaluate student on test dataset
 distiller.evaluate(x_test, y_test)
 
-"""
-## Train student from scratch for comparison
 
-We can also train an equivalent student model from scratch without the teacher, in order
-to evaluate the performance gain obtained by knowledge distillation.
-"""
+## Train student from scratch for comparison
 
 # Train student as doen usually
 student_scratch.compile(
@@ -275,12 +273,3 @@ student_scratch.compile(
 # Train and evaluate student trained from scratch.
 student_scratch.fit(x_train, y_train, epochs=3)
 student_scratch.evaluate(x_test, y_test)
-
-"""
-If the teacher is trained for 5 full epochs and the student is distilled on this teacher
-for 3 full epochs, you should in this example experience a performance boost compared to
-training the same student model from scratch, and even compared to the teacher itself.
-You should expect the teacher to have accuracy around 97.6%, the student trained from
-scratch should be around 97.6%, and the distilled student should be around 98.1%. Remove
-or try out different seeds to use different weight initializations.
-"""
