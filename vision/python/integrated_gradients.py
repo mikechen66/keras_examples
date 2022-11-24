@@ -4,9 +4,7 @@ Author: [A_K_Nain](https://twitter.com/A_K_Nain)
 Date created: 2020/06/02
 Last modified: 2020/06/02
 Description: How to obtain integrated gradients for a classification model.
-"""
 
-"""
 ## Integrated Gradients
 
 [Integrated Gradients](https://arxiv.org/abs/1703.01365) is a technique for
@@ -14,31 +12,37 @@ attributing a classification model's prediction to its input features. It is
 a model interpretability technique: you can use it to visualize the relationship
 between input features and model predictions.
 
-Integrated Gradients is a variation on computing
-the gradient of the prediction output with regard to features of the input.
-To compute integrated gradients, we need to perform the following steps:
+Integrated Gradients is a variation on computing the gradient of the prediction 
+output with regard to features of the input. To compute integrated gradients, 
+we need to perform the following steps:
 
-1. Identify the input and the output. In our case, the input is an image and the
+1.Identify the input and the output. In our case, the input is an image and the
 output is the last layer of our model (dense layer with softmax activation).
 
-2. Compute which features are important to a neural network
-when making a prediction on a particular data point. To identify these features, we
-need to choose a baseline input. A baseline input can be a black image (all pixel
-values set to zero) or random noise. The shape of the baseline input needs to be
-the same as our input image, e.g. (299, 299, 3).
+2.Compute which features are important to a neural network
 
-3. Interpolate the baseline for a given number of steps. The number of steps represents
-the steps we need in the gradient approximation for a given input image. The number of
-steps is a hyperparameter. The authors recommend using anywhere between
-20 and 1000 steps.
+when making a prediction on a particular data point. To identify these features, 
+we need to choose a baseline input. A baseline input can be a black image (all 
+pixel values set to zero) or random noise. The shape of the baseline input needs 
+to be the same as our input image, e.g. (299, 299, 3).
 
-4. Preprocess these interpolated images and do a forward pass.
-5. Get the gradients for these interpolated images.
-6. Approximate the gradients integral using the trapezoidal rule.
+3.Interpolate the baseline for a given number of steps. The steps represents to
+be needed in the gradient approximation for a given input image. The number of
+steps is a hyperparameter. The authors recommend using anywhere between 20 and 
+1000 steps.
 
-To read in-depth about integrated gradients and why this method works,
-consider reading this excellent
-[article](https://distill.pub/2020/attribution-baselines/).
+4.Preprocess these interpolated images and do a forward pass.
+
+5.Get the gradients for these interpolated images.
+
+6.Approximate the gradients integral using the trapezoidal rule.
+
+To read in-depth about integrated gradients and why this method works, consider 
+reading this excellent [article]
+(https://distill.pub/2020/attribution-baselines/).
+
+# You can try the model on [Hugging Face Spaces]
+(https://huggingface.co/spaces/keras-io/integrated_gradients).
 
 **References:**
 
@@ -46,16 +50,11 @@ consider reading this excellent
 - [Original implementation](https://github.com/ankurtaly/Integrated-Gradients)
 """
 
-"""
-## Setup
-"""
-
 
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import ndimage
 from IPython.display import Image
-# Add the import to dispaly the image 
 from IPython.display import display
 
 import tensorflow as tf
@@ -70,19 +69,18 @@ img_size = (299, 299, 3)
 model = xception.Xception(weights="imagenet")
 
 # The local path to our target image
-img_path = keras.utils.get_file("/home/mike/Documents/keras-io-master/examples/vision/elephant.png", "https://i.imgur.com/Bvro0YD.png")
+img_path = keras.utils.get_file("/home/mike/Documents/keras-io-master/examples/vision/elephant.png", 
+                                "https://i.imgur.com/Bvro0YD.png")
 # -img_path = "/home/mike/Documents/keras-io-master/examples/vision/elephant.png"
 display(Image(img_path))
 
-"""
-## Integrated Gradients algorithm
-"""
 
+## Integrated Gradients algorithm
 
 def get_img_array(img_path, size=(299, 299)):
-    # `img` is a PIL image of size 299x299
+    # 'img' is a PIL image of size 299x299
     img = keras.preprocessing.image.load_img(img_path, target_size=size)
-    # `array` is a float32 Numpy array of shape (299, 299, 3)
+    # 'array' is a float32 Numpy array of shape (299, 299, 3)
     array = keras.preprocessing.image.img_to_array(img)
     # We add a dimension to transform our array into a "batch"
     # of size (1, 299, 299, 3)
@@ -91,12 +89,11 @@ def get_img_array(img_path, size=(299, 299)):
 
 
 def get_gradients(img_input, top_pred_idx):
-    """Computes the gradients of outputs w.r.t input image.
-
+    """
+    Computes the gradients of outputs w.r.t input image.
     Args:
         img_input: 4D image tensor
         top_pred_idx: Predicted label for the input image
-
     Returns:
         Gradients of the predictions w.r.t img_input
     """
@@ -112,8 +109,8 @@ def get_gradients(img_input, top_pred_idx):
 
 
 def get_integrated_gradients(img_input, top_pred_idx, baseline=None, num_steps=50):
-    """Computes Integrated Gradients for a predicted label.
-
+    """
+    Computes Integrated Gradients for a predicted label.
     Args:
         img_input (ndarray): Original image
         top_pred_idx: Predicted label for the input image
@@ -122,7 +119,6 @@ def get_integrated_gradients(img_input, top_pred_idx, baseline=None, num_steps=5
             and the input used in the computation of integrated gradients. These
             steps along determine the integral approximation error. By default,
             num_steps is set to 50.
-
     Returns:
         Integrated gradients w.r.t input image
     """
@@ -133,7 +129,7 @@ def get_integrated_gradients(img_input, top_pred_idx, baseline=None, num_steps=5
     else:
         baseline = baseline.astype(np.float32)
 
-    # 1. Do interpolation.
+    # 1.Do interpolation.
     img_input = img_input.astype(np.float32)
     interpolated_image = [
         baseline + (step / num_steps) * (img_input - baseline)
@@ -141,10 +137,10 @@ def get_integrated_gradients(img_input, top_pred_idx, baseline=None, num_steps=5
     ]
     interpolated_image = np.array(interpolated_image).astype(np.float32)
 
-    # 2. Preprocess the interpolated images
+    # 2.Preprocess the interpolated images
     interpolated_image = xception.preprocess_input(interpolated_image)
 
-    # 3. Get the gradients
+    # 3.Get the gradients
     grads = []
     for i, img in enumerate(interpolated_image):
         img = tf.expand_dims(img, axis=0)
@@ -152,11 +148,11 @@ def get_integrated_gradients(img_input, top_pred_idx, baseline=None, num_steps=5
         grads.append(grad[0])
     grads = tf.convert_to_tensor(grads, dtype=tf.float32)
 
-    # 4. Approximate the integral using the trapezoidal rule
+    # 4.Approximate the integral using the trapezoidal rule
     grads = (grads[:-1] + grads[1:]) / 2.0
     avg_grads = tf.reduce_mean(grads, axis=0)
 
-    # 5. Calculate integrated gradients and return
+    # 5.Calculate integrated gradients and return
     integrated_grads = (img_input - baseline) * avg_grads
     return integrated_grads
 
@@ -164,8 +160,8 @@ def get_integrated_gradients(img_input, top_pred_idx, baseline=None, num_steps=5
 def random_baseline_integrated_gradients(
     img_input, top_pred_idx, num_steps=50, num_runs=2
 ):
-    """Generates a number of random baseline images.
-
+    """
+    Generates a number of random baseline images.
     Args:
         img_input (ndarray): 3D image
         top_pred_idx: Predicted label for the input image
@@ -174,14 +170,13 @@ def random_baseline_integrated_gradients(
             steps along determine the integral approximation error. By default,
             num_steps is set to 50.
         num_runs: number of baseline images to generate
-
     Returns:
         Averaged integrated gradients for `num_runs` baseline images
     """
-    # 1. List to keep track of Integrated Gradients (IG) for all the images
+    # 1.List to keep track of Integrated Gradients (IG) for all the images
     integrated_grads = []
 
-    # 2. Get the integrated gradients for all the baselines
+    # 2.Get the integrated gradients for all the baselines
     for run in range(num_runs):
         baseline = np.random.random(img_size) * 255
         igrads = get_integrated_gradients(
@@ -192,15 +187,12 @@ def random_baseline_integrated_gradients(
         )
         integrated_grads.append(igrads)
 
-    # 3. Return the average integrated gradients for the image
+    # 3.Return the average integrated gradients for the image
     integrated_grads = tf.convert_to_tensor(integrated_grads)
     return tf.reduce_mean(integrated_grads, axis=0)
 
 
-"""
 ## Helper class for visualizing gradients and integrated gradients
-"""
-
 
 class GradVisualizer:
     """Plot gradients of the outputs w.r.t an input image."""
@@ -229,7 +221,7 @@ class GradVisualizer:
         clip_below_percentile=70.0,
         lower_end=0.2,
     ):
-        # 1. Get the thresholds
+        # 1.Get the thresholds
         m = self.get_thresholded_attributions(
             attributions, percentage=100 - clip_above_percentile
         )
@@ -237,19 +229,19 @@ class GradVisualizer:
             attributions, percentage=100 - clip_below_percentile
         )
 
-        # 2. Transform the attributions by a linear function f(x) = a*x + b such that
+        # 2.Transform the attributions by a linear function f(x) = a*x + b such that
         # f(m) = 1.0 and f(e) = lower_end
         transformed_attributions = (1 - lower_end) * (np.abs(attributions) - e) / (
             m - e
         ) + lower_end
 
-        # 3. Make sure that the sign of transformed attributions is the same as original attributions
+        # 3.Make sure that the sign of transformed attributions is the same as original attributions
         transformed_attributions *= np.sign(attributions)
 
-        # 4. Only keep values that are bigger than the lower_end
+        # 4.Only keep values that are bigger than the lower_end
         transformed_attributions *= transformed_attributions >= lower_end
 
-        # 5. Clip values and return
+        # 5.Clip values and return
         transformed_attributions = np.clip(transformed_attributions, 0.0, 1.0)
         return transformed_attributions
 
@@ -257,23 +249,23 @@ class GradVisualizer:
         if percentage == 100.0:
             return np.min(attributions)
 
-        # 1. Flatten the attributions
+        # 1.Flatten the attributions
         flatten_attr = attributions.flatten()
 
-        # 2. Get the sum of the attributions
+        # 2.Get the sum of the attributions
         total = np.sum(flatten_attr)
 
-        # 3. Sort the attributions from largest to smallest.
+        # 3.Sort the attributions from largest to smallest.
         sorted_attributions = np.sort(np.abs(flatten_attr))[::-1]
 
-        # 4. Calculate the percentage of the total sum that each attribution
+        # 4.Calculate the percentage of the total sum that each attribution
         # and the values about it contribute.
         cum_sum = 100.0 * np.cumsum(sorted_attributions) / total
 
-        # 5. Threshold the attributions by the percentage
+        # 5.Threshold the attributions by the percentage
         indices_to_consider = np.where(cum_sum >= percentage)[0][0]
 
-        # 6. Select the desired attributions and return
+        # 6.Select the desired attributions and return
         attributions = sorted_attributions[indices_to_consider]
         return attributions
 
@@ -288,18 +280,18 @@ class GradVisualizer:
     def draw_outlines(
         self, attributions, percentage=90, connected_component_structure=np.ones((3, 3))
     ):
-        # 1. Binarize the attributions.
+        # 1.Binarize the attributions.
         attributions = self.binarize(attributions)
 
-        # 2. Fill the gaps
+        # 2.Fill the gaps
         attributions = ndimage.binary_fill_holes(attributions)
 
-        # 3. Compute connected components
+        # 3.Compute connected components
         connected_components, num_comp = ndimage.measurements.label(
             attributions, structure=connected_component_structure
         )
 
-        # 4. Sum up the attributions for each component
+        # 4.Sum up the attributions for each component
         total = np.sum(attributions[connected_components > 0])
         component_sums = []
         for comp in range(1, num_comp + 1):
@@ -307,7 +299,7 @@ class GradVisualizer:
             component_sum = np.sum(attributions[mask])
             component_sums.append((component_sum, mask))
 
-        # 5. Compute the percentage of top components to keep
+        # 5.Compute the percentage of top components to keep
         sorted_sums_and_masks = sorted(component_sums, key=lambda x: x[0], reverse=True)
         sorted_sums = list(zip(*sorted_sums_and_masks))[0]
         cumulative_sorted_sums = np.cumsum(sorted_sums)
@@ -316,12 +308,12 @@ class GradVisualizer:
         if cutoff_idx > 2:
             cutoff_idx = 2
 
-        # 6. Set the values for the kept components
+        # 6.Set the values for the kept components
         border_mask = np.zeros_like(attributions)
         for i in range(cutoff_idx + 1):
             border_mask[sorted_sums_and_masks[i][1]] = 1
 
-        # 7. Make the mask hollow and show only the border
+        # 7.Make the mask hollow and show only the border
         eroded_mask = ndimage.binary_erosion(border_mask, iterations=1)
         border_mask[eroded_mask] = 0
 
@@ -352,7 +344,7 @@ class GradVisualizer:
         if clip_below_percentile < 0 or clip_below_percentile > 100:
             raise ValueError("clip_below_percentile must be in [0, 100]")
 
-        # 1. Apply polarity
+        # 1.Apply polarity
         if polarity == "positive":
             attributions = self.apply_polarity(attributions, polarity=polarity)
             channel = self.positive_channel
@@ -361,10 +353,10 @@ class GradVisualizer:
             attributions = np.abs(attributions)
             channel = self.negative_channel
 
-        # 2. Take average over the channels
+        # 2.Take average over the channels
         attributions = np.average(attributions, axis=2)
 
-        # 3. Apply linear transformation to the attributions
+        # 3.Apply linear transformation to the attributions
         attributions = self.apply_linear_transformation(
             attributions,
             clip_above_percentile=clip_above_percentile,
@@ -372,7 +364,7 @@ class GradVisualizer:
             lower_end=0.0,
         )
 
-        # 4. Cleanup
+        # 4.Cleanup
         if morphological_cleanup:
             attributions = self.morphological_cleanup_fn(
                 attributions, structure=structure
@@ -383,7 +375,7 @@ class GradVisualizer:
                 attributions, percentage=outlines_component_percentage
             )
 
-        # 6. Expand the channel axis and convert to RGB
+        # 6.Expand the channel axis and convert to RGB
         attributions = np.expand_dims(attributions, 2) * channel
 
         # 7.Superimpose on the original image
@@ -406,11 +398,11 @@ class GradVisualizer:
         overlay=True,
         figsize=(15, 8),
     ):
-        # 1. Make two copies of the original image
+        # 1.Make two copies of the original image
         img1 = np.copy(image)
         img2 = np.copy(image)
 
-        # 2. Process the normal gradients
+        # 2.Process the normal gradients
         grads_attr = self.process_grads(
             image=img1,
             attributions=gradients,
@@ -424,7 +416,7 @@ class GradVisualizer:
             overlay=overlay,
         )
 
-        # 3. Process the integrated gradients
+        # 3.Process the integrated gradients
         igrads_attr = self.process_grads(
             image=img2,
             attributions=integrated_gradients,
@@ -449,34 +441,31 @@ class GradVisualizer:
         plt.show()
 
 
-"""
-## Let's test-drive it
-You can try the model on [Hugging Face Spaces](https://huggingface.co/spaces/keras-io/integrated_gradients).
-"""
+## Let's test drive it
 
-# 1. Convert the image to numpy array
+# 1.Convert the image to numpy array
 img = get_img_array(img_path)
 
-# 2. Keep a copy of the original image
+# 2.Keep a copy of the original image
 orig_img = np.copy(img[0]).astype(np.uint8)
 
-# 3. Preprocess the image
+# 3.Preprocess the image
 img_processed = tf.cast(xception.preprocess_input(img), dtype=tf.float32)
 
-# 4. Get model predictions
+# 4.Get model predictions
 preds = model.predict(img_processed)
 top_pred_idx = tf.argmax(preds[0])
 print("Predicted:", top_pred_idx, xception.decode_predictions(preds, top=1)[0])
 
-# 5. Get the gradients of the last layer for the predicted label
+# 5.Get the gradients of the last layer for the predicted label
 grads = get_gradients(img_processed, top_pred_idx=top_pred_idx)
 
-# 6. Get the integrated gradients
+# 6.Get the integrated gradients
 igrads = random_baseline_integrated_gradients(
     np.copy(orig_img), top_pred_idx=top_pred_idx, num_steps=50, num_runs=2
 )
 
-# 7. Process the gradients and plot
+# 7.Process the gradients and plot
 vis = GradVisualizer()
 vis.visualize(
     image=orig_img,
