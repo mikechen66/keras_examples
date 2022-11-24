@@ -4,29 +4,58 @@ Author: [Khalid Salama](https://www.linkedin.com/in/khalid-salama-24403144/)
 Date created: 2021/01/18
 Last modified: 2021/01/18
 Description: Implementing the Vision Transformer (ViT) model for image classification.
-"""
 
-"""
 ## Introduction
 
 This example implements the [Vision Transformer (ViT)](https://arxiv.org/abs/2010.11929)
-model by Alexey Dosovitskiy et al. for image classification,
-and demonstrates it on the CIFAR-100 dataset.
-The ViT model applies the Transformer architecture with self-attention to sequences of
-image patches, without using convolution layers.
-
-This example requires TensorFlow 2.4 or higher, as well as
-[TensorFlow Addons](https://www.tensorflow.org/addons/overview),
-which can be installed using the following command:
+model by Alexey Dosovitskiy et al. for image classification, and demonstrates it on the 
+CIFAR-100 dataset. The ViT model applies the Transformer architecture with self-attention 
+to sequences of image patches, without using convolution layers. This example requires 
+TensorFlow 2.4 or higher, as well as the following link which can be installed using the 
+following command.[TensorFlow Addons](https://www.tensorflow.org/addons/overview),
 
 ```python
 pip install -U tensorflow-addons
 ```
+## Implement the patch encoding layer
+
+The 'PatchEncoder' layer will linearly transform a patch by projecting it into avector of 
+size `projection_dim`. In addition, it adds a learnable position embedding to the projected 
+vector.
+
+## Build the ViT model
+
+It consists of multiple Transformer blocks, which use the 'layers.MultiHeadAttention' as 
+a self-attention mechanism applied to the sequence of patches. The Transformer blocks 
+produce a '[batch_size, num_patches, projection_dim]' tensor, which is processed via an
+classifier head with softmax to produce the final class probabilities output.
+
+Unlike the technique described in the [paper](https://arxiv.org/abs/2010.11929), which 
+prepends a learnable embedding to the sequence of encoded patches to serve as the image 
+representation, all the outputs of the final Transformer block are reshaped with 
+'layers.Flatten()' and used as the image representation input to the classifier head.
+
+Note that the 'layers.GlobalAveragePooling1D' layer could be used instead to aggregate 
+the outputs of the Transformer block, especially when the number of patches and the 
+projection dimensions are large.
+
+After 100 epochs, the ViT model achieves around 55% accuracy and 82% top-5 accuracy on 
+the test data. These are not competitive results on the CIFAR-100 dataset, as a ResNet50V2 
+trained from scratch on the same data can achieve 67% accuracy.
+
+Note that the results reported in the the following weblink is achieved by pre-training 
+the ViT model using the JFT-300M dataset, then fine-tuning it on the target dataset. To 
+improve the model quality without pre-training, you can try to train the model for more 
+epochs, use a larger number of Transformer layers, resize the input images, change the 
+patch size, or increase the projection dimensions. Besides, as mentioned in the paper, 
+the quality of the model is affected not only by architecture choices, but also by 
+parameters such as the learning rate schedule, optimizer, weight decay, etc. In practice, 
+it's recommended to fine-tune a ViT model that was pre-trained using a large, high-
+resolution dataset.
+
+[paper](https://arxiv.org/abs/2010.11929) 
 """
 
-"""
-## Setup
-"""
 
 import numpy as np
 import tensorflow as tf
@@ -34,9 +63,8 @@ from tensorflow import keras
 from tensorflow.keras import layers
 import tensorflow_addons as tfa
 
-"""
+
 ## Prepare the data
-"""
 
 num_classes = 100
 input_shape = (32, 32, 3)
@@ -47,16 +75,14 @@ print(f"x_train shape: {x_train.shape} - y_train shape: {y_train.shape}")
 print(f"x_test shape: {x_test.shape} - y_test shape: {y_test.shape}")
 
 
-"""
 ## Configure the hyperparameters
-"""
 
 learning_rate = 0.001
 weight_decay = 0.0001
 batch_size = 256
 num_epochs = 100
 image_size = 72  # We'll resize input images to this size
-patch_size = 6  # Size of the patches to be extract from the input images
+patch_size = 6   # Size of the patches to be extract from the input images
 num_patches = (image_size // patch_size) ** 2
 projection_dim = 64
 num_heads = 4
@@ -68,9 +94,7 @@ transformer_layers = 8
 mlp_head_units = [2048, 1024]  # Size of the dense layers of the final classifier
 
 
-"""
 ## Use data augmentation
-"""
 
 data_augmentation = keras.Sequential(
     [
@@ -86,10 +110,7 @@ data_augmentation = keras.Sequential(
 data_augmentation.layers[0].adapt(x_train)
 
 
-"""
-## Implement multilayer perceptron (MLP)
-"""
-
+## Implement multilayer perceptron(MLP)
 
 def mlp(x, hidden_units, dropout_rate):
     for units in hidden_units:
@@ -98,10 +119,7 @@ def mlp(x, hidden_units, dropout_rate):
     return x
 
 
-"""
 ## Implement patch creation as a layer
-"""
-
 
 class Patches(layers.Layer):
     def __init__(self, patch_size):
@@ -122,9 +140,7 @@ class Patches(layers.Layer):
         return patches
 
 
-"""
-Let's display patches for a sample image
-"""
+# Display patches for a sample image
 
 import matplotlib.pyplot as plt
 
@@ -150,14 +166,8 @@ for i, patch in enumerate(patches[0]):
     plt.imshow(patch_img.numpy().astype("uint8"))
     plt.axis("off")
 
-"""
+
 ## Implement the patch encoding layer
-
-The `PatchEncoder` layer will linearly transform a patch by projecting it into a
-vector of size `projection_dim`. In addition, it adds a learnable position
-embedding to the projected vector.
-"""
-
 
 class PatchEncoder(layers.Layer):
     def __init__(self, num_patches, projection_dim):
@@ -174,25 +184,7 @@ class PatchEncoder(layers.Layer):
         return encoded
 
 
-"""
 ## Build the ViT model
-
-The ViT model consists of multiple Transformer blocks,
-which use the `layers.MultiHeadAttention` layer as a self-attention mechanism
-applied to the sequence of patches. The Transformer blocks produce a
-`[batch_size, num_patches, projection_dim]` tensor, which is processed via an
-classifier head with softmax to produce the final class probabilities output.
-
-Unlike the technique described in the [paper](https://arxiv.org/abs/2010.11929),
-which prepends a learnable embedding to the sequence of encoded patches to serve
-as the image representation, all the outputs of the final Transformer block are
-reshaped with `layers.Flatten()` and used as the image
-representation input to the classifier head.
-Note that the `layers.GlobalAveragePooling1D` layer
-could also be used instead to aggregate the outputs of the Transformer block,
-especially when the number of patches and the projection dimensions are large.
-"""
-
 
 def create_vit_classifier():
     inputs = layers.Input(shape=input_shape)
@@ -233,10 +225,7 @@ def create_vit_classifier():
     return model
 
 
-"""
-## Compile, train, and evaluate the mode
-"""
-
+## Compile, train and evaluate the mode
 
 def run_experiment(model):
     optimizer = tfa.optimizers.AdamW(
@@ -279,20 +268,3 @@ def run_experiment(model):
 
 vit_classifier = create_vit_classifier()
 history = run_experiment(vit_classifier)
-
-
-"""
-After 100 epochs, the ViT model achieves around 55% accuracy and
-82% top-5 accuracy on the test data. These are not competitive results on the CIFAR-100 dataset,
-as a ResNet50V2 trained from scratch on the same data can achieve 67% accuracy.
-
-Note that the state of the art results reported in the
-[paper](https://arxiv.org/abs/2010.11929) are achieved by pre-training the ViT model using
-the JFT-300M dataset, then fine-tuning it on the target dataset. To improve the model quality
-without pre-training, you can try to train the model for more epochs, use a larger number of
-Transformer layers, resize the input images, change the patch size, or increase the projection dimensions. 
-Besides, as mentioned in the paper, the quality of the model is affected not only by architecture choices, 
-but also by parameters such as the learning rate schedule, optimizer, weight decay, etc.
-In practice, it's recommended to fine-tune a ViT model
-that was pre-trained using a large, high-resolution dataset.
-"""
