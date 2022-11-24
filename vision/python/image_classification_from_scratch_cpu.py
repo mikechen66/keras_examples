@@ -24,7 +24,7 @@ $ unzip -q kagglecatsanddogs_5340.zip
 $ ls PetImages
 
 We have a 'PetImages' folder which contain two subfolders, 'Cat' and 'Dog'. Each subfolder 
-contains image files for each category.
+contains image files for each category. You can choose to save it in a dataset folder. 
 
 Filter out corrupted images
 
@@ -101,7 +101,10 @@ Note that:
 
 ## Run inference on new data
 
-# Note that data augmentation and dropout are inactive at inference time.
+Note that data augmentation and dropout are inactive at inference time. And It has the following TypeError: 
+unsupported format string passed to numpy.ndarray.__format__
+
+https://github.com/open-mmlab/mmselfsup/issues/175
 """
 
 
@@ -279,7 +282,7 @@ model.compile(
     optimizer=keras.optimizers.Adam(1e-3),
     loss="binary_crossentropy",
     metrics=["accuracy"],
-    jit_compile=True,  # Enable XLA compilation for faster training
+    # jit_compile=True,  # Disable XLA compilation to avoid no compilor error
 )
 
 model.fit(
@@ -289,7 +292,7 @@ model.fit(
     validation_data=val_ds,
 )
 
-
+"""
 ## Run inference on new data
 
 # Data augmentation and dropout are inactive at inference time.
@@ -302,4 +305,6 @@ img_array = tf.expand_dims(img_array, 0)  # Create batch axis
 
 predictions = model.predict(img_array)
 score = predictions[0]
+# TypeError: unsupported format string passed to numpy.ndarray.__format__
 print(f"This image is {100 * (1 - score):.2f}% cat and {100 * score:.2f}% dog.")
+"""
