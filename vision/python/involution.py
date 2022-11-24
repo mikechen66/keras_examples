@@ -3,36 +3,118 @@ Title: Involutional neural networks
 Author: [Aritra Roy Gosthipaty](https://twitter.com/ariG23498)
 Date created: 2021/07/25
 Last modified: 2021/07/25
-Description: Deep dive into location-specific and channel-agnostic "involution" kernels.
-"""
-"""
+Description: Deep dive into location-specific and channel-agnostic involution  kernels.
+
 ## Introduction
 
-Convolution has been the basis of most modern neural
-networks for computer vision. A convolution kernel is
-spatial-agnostic and channel-specific. Because of this, it isn't able
-to adapt to different visual patterns with respect to
-different spatial locations. Along with location-related problems, the
-receptive field of convolution creates challenges with regard to capturing
-long-range spatial interactions.
+Convolution has been the basis of most modern neural networks for computer vision. A 
+convolution kernel is spatial-agnostic and channel-specific. Because of this, it isn't 
+able to adapt to different visual patterns with respect to different spatial locations. 
+Along with location-related problems, the receptive field of convolution creates 
+challenges with regard to capturing long-range spatial interactions.
 
-To address the above issues, Li et. al. rethink the properties
-of convolution in
-[Involution: Inverting the Inherence of Convolution for VisualRecognition](https://arxiv.org/abs/2103.06255).
-The authors propose the "involution kernel", that is location-specific and
-channel-agnostic. Due to the location-specific nature of the operation,
-the authors say that self-attention falls under the design paradigm of
+To address the above issues, Li et. al. rethink the properties of convolution in 
+[Involution: Inverting the Inherence of Convolution for VisualRecognition]
+(https://arxiv.org/abs/2103.06255). The authors propose the involution kernel, that is 
+location-specific and channel-agnostic. Due to the location-specific nature of the 
+operation, the authors say that self-attention falls under the design paradigm of 
 involution.
 
-This example describes the involution kernel, compares two image
-classification models, one with convolution and the other with
-involution, and also tries drawing a parallel with the self-attention
-layer.
+This example describes the involution kernel, compares two image classification models, 
+one with convolution and the other with involution, and also tries drawing a parallel 
+with the self-attention layer.
+
+## Convolution
+
+Convolution remains the mainstay of deep neural networks for computer vision. To 
+understand Involution, it is necessary to talk about the convolution operation.
+
+![Imgur](https://i.imgur.com/MSKLsm5.png)
+
+Consider an input tensor **X** with dimensions **H**, **W** and **C_in**. We take  a 
+collection of **C_out** convolution kernels each of shape **K**, **K**, **C_in**. With 
+the multiply-add operation between the input tensor and the kernels we obtain an output 
+tensor **Y** with dimensions **H**, **W**, **C_out**.
+
+In the diagram above `C_out=3`. This makes the output tensor of shape H, W and 3. One 
+can notice that the convoltuion kernel does not depend on the spatial position of the 
+input tensor which makes it **location-agnostic**. On the other hand, each channel in 
+the output tensor is based on a specific convolution filter which makes is**channel-
+specific**.
+
+## Involution
+
+The idea is to have an operation that is both **location-specific** and **channel-
+agnostic**. Trying to implement these specific properties poses a challenge. With a 
+fixed number of involution kernels (for each spatial position) we will **not** be 
+able to process variable-resolution input tensors.
+
+To solve this problem, the authors have considered *generating* each kernel conditioned 
+on specific spatial positions. With this method, we should be able to  process variable-
+resolution input tensors with ease. The diagram below provides an intuition on this 
+kernel generation method.
+
+![Imgur](https://i.imgur.com/jtrGGQg.png)
+
+## Image Classification
+
+In this section, we will build an image-classifier model. There will be two models one 
+with convolutions and the other with involutions.
+
+The image-classification model is heavily inspired by this [Convolutional Neural Network 
+(CNN)](https://www.tensorflow.org/tutorials/images/cnn) tutorial from Google.
+
+## Comparisons
+
+In this section, we will be looking at both the models and compare a few pointers.
+
+### Parameters
+
+One can see that with a similar architecture the parameters in a CNN is much larger than 
+that of an INN (Involutional Neural Network).
+
+### Loss and Accuracy Plots
+
+Here, the loss and the accuracy plots demonstrate that INNs are slow learners (with lower 
+parameters).
+
+## Visualizing Involution Kernels
+
+To visualize the kernels, we take the sum of **K×K** values from each involution kernel. 
+**All the representatives at different spatial locations frame the corresponding heat map.**
+
+The authors mention:
+
+"Our proposed involution is reminiscent of self-attention and essentially could become 
+a generalized version of it."
+
+With the visualization of the kernel we can indeed obtain an attention map of the image. 
+The learned involution kernels provides attention to individual spatial positions of the 
+input tensor. The **location-specific** property makes involution a generic space of 
+modelsin which self-attention belongs.
+
+## Conclusions
+
+In this example, the main focus was to build an `Involution` layer which can be easily 
+reused. While our comparisons were based on a specific task, feel free to use the layer 
+for different tasks and report your results.
+
+According to me, the key take-away of involution is its relationship with self-attention. 
+The intuition behind location-specific and channel-spefic processing makes sense in a lot 
+of tasks. Moving forward one can:
+
+- Look at [Yannick's video](https://youtu.be/pH2jZun8MoY) oF involution for a better 
+  understanding.
+- Experiment with the various hyperparameters of the involution layer.
+- Build different models with the involution layer.
+- Try building a different kernel generation method altogether.
+
+You can use the trained model hosted on [Hugging Face Hub]
+(https://huggingface.co/keras-io/involution)
+and try the demo on [Hugging Face Spaces]
+(https://huggingface.co/spaces/keras-io/involution).
 """
 
-"""
-## Setup
-"""
 
 import tensorflow as tf
 from tensorflow import keras
@@ -41,47 +123,8 @@ import matplotlib.pyplot as plt
 # Set seed for reproducibility.
 tf.random.set_seed(42)
 
-"""
-## Convolution
 
-Convolution remains the mainstay of deep neural networks for computer vision.
-To understand Involution, it is necessary to talk about the
-convolution operation.
-
-![Imgur](https://i.imgur.com/MSKLsm5.png)
-
-Consider an input tensor **X** with dimensions **H**, **W** and
-**C_in**. We take a collection of **C_out** convolution kernels each of
-shape **K**, **K**, **C_in**. With the multiply-add operation between
-the input tensor and the kernels we obtain an output tensor **Y** with
-dimensions **H**, **W**, **C_out**.
-
-In the diagram above `C_out=3`. This makes the output tensor of shape H,
-W and 3. One can notice that the convoltuion kernel does not depend on
-the spatial position of the input tensor which makes it
-**location-agnostic**. On the other hand, each channel in the output
-tensor is based on a specific convolution filter which makes is
-**channel-specific**.
-"""
-
-"""
 ## Involution
-
-The idea is to have an operation that is both **location-specific**
-and **channel-agnostic**. Trying to implement these specific properties poses
-a challenge. With a fixed number of involution kernels (for each
-spatial position) we will **not** be able to process variable-resolution
-input tensors.
-
-To solve this problem, the authors have considered *generating* each
-kernel conditioned on specific spatial positions. With this method, we
-should be able to process variable-resolution input tensors with ease.
-The diagram below provides an intuition on this kernel generation
-method.
-
-![Imgur](https://i.imgur.com/jtrGGQg.png)
-"""
-
 
 class Involution(keras.layers.Layer):
     def __init__(
@@ -188,9 +231,7 @@ class Involution(keras.layers.Layer):
         return output, kernel
 
 
-"""
 ## Testing the Involution layer
-"""
 
 # Define the input tensor.
 input_tensor = tf.random.normal((32, 256, 256, 3))
@@ -215,20 +256,8 @@ print(
     "with channel 16 and reduction ratio 2 ouput shape: {}".format(output_tensor.shape)
 )
 
-"""
-## Image Classification
 
-In this section, we will build an image-classifier model. There will
-be two models one with convolutions and the other with involutions.
-
-The image-classification model is heavily inspired by this
-[Convolutional Neural Network (CNN)](https://www.tensorflow.org/tutorials/images/cnn)
-tutorial from Google.
-"""
-
-"""
 ## Get the CIFAR10 Dataset
-"""
 
 # Load the CIFAR10 dataset.
 print("loading the CIFAR10 dataset...")
@@ -251,9 +280,8 @@ train_ds = (
 )
 test_ds = tf.data.Dataset.from_tensor_slices((test_images, test_labels)).batch(256)
 
-"""
+
 ## Visualise the data
-"""
 
 class_names = [
     "airplane",
@@ -278,9 +306,8 @@ for i in range(25):
     plt.xlabel(class_names[train_labels[i][0]])
 plt.show()
 
-"""
+
 ## Convolutional Neural Network
-"""
 
 # Build the conv model.
 print("building the convolution model...")
@@ -312,9 +339,8 @@ conv_model.compile(
 print("conv model training...")
 conv_hist = conv_model.fit(train_ds, epochs=20, validation_data=test_ds)
 
-"""
+
 ## Involutional Neural Network
-"""
 
 # Build the involution model.
 print("building the involution model...")
@@ -352,31 +378,14 @@ inv_model.compile(
 print("inv model training...")
 inv_hist = inv_model.fit(train_ds, epochs=20, validation_data=test_ds)
 
-"""
+
 ## Comparisons
 
-In this section, we will be looking at both the models and compare a
-few pointers.
-"""
-
-"""
-### Parameters
-
-One can see that with a similar architecture the parameters in a CNN
-is much larger than that of an INN (Involutional Neural Network).
-"""
-
+# Parameters
 conv_model.summary()
-
 inv_model.summary()
 
-"""
-### Loss and Accuracy Plots
-
-Here, the loss and the accuracy plots demonstrate that INNs are slow
-learners (with lower parameters).
-"""
-
+# Loss and Accuracy Plots
 plt.figure(figsize=(20, 5))
 
 plt.subplot(1, 2, 1)
@@ -409,24 +418,8 @@ plt.legend()
 
 plt.show()
 
-"""
-## Visualizing Involution Kernels
 
-To visualize the kernels, we take the sum of **K×K** values from each
-involution kernel. **All the representatives at different spatial
-locations frame the corresponding heat map.**
-
-The authors mention:
-
-"Our proposed involution is reminiscent of self-attention and
-essentially could become a generalized version of it."
-
-With the visualization of the kernel we can indeed obtain an attention
-map of the image. The learned involution kernels provides attention to
-individual spatial positions of the input tensor. The
-**location-specific** property makes involution a generic space of models
-in which self-attention belongs.
-"""
+## Visualize involution Kernels
 
 layer_names = ["inv_1", "inv_2", "inv_3"]
 outputs = [inv_model.get_layer(name).output for name in layer_names]
@@ -456,27 +449,3 @@ for ax, test_image in zip(axes, test_images[:10]):
 
     ax[3].imshow(keras.preprocessing.image.array_to_img(inv3_kernel[0, ..., None]))
     ax[3].set_title("Involution Kernel 3")
-
-"""
-## Conclusions
-
-In this example, the main focus was to build an `Involution` layer which
-can be easily reused. While our comparisons were based on a specific
-task, feel free to use the layer for different tasks and report your
-results.
-
-According to me, the key take-away of involution is its
-relationship with self-attention. The intuition behind location-specific
-and channel-spefic processing makes sense in a lot of tasks.
-
-Moving forward one can:
-
-- Look at [Yannick's video](https://youtu.be/pH2jZun8MoY) on
-    involution for a better understanding.
-- Experiment with the various hyperparameters of the involution layer.
-- Build different models with the involution layer.
-- Try building a different kernel generation method altogether.
-
-You can use the trained model hosted on [Hugging Face Hub](https://huggingface.co/keras-io/involution)
-and try the demo on [Hugging Face Spaces](https://huggingface.co/spaces/keras-io/involution).
-"""
