@@ -7,29 +7,173 @@ Description: A minimal implementation of ShiftViT.
 
 ## Introduction
 
-[Vision Transformers](https://arxiv.org/abs/2010.11929) (ViTs) have sparked a wave of
-research at the intersection of Transformers and Computer Vision (CV).
+[Vision Transformers](https://arxiv.org/abs/2010.11929) (ViTs) have sparked a wave of research at the intersection 
+of Transformers and Computer Vision (CV). ViTs can simultaneously model long- and short-range dependencies, thanks 
+to the Multi-Head Self-Attention mechanism in the Transformer block. Many researchers believe that the success of 
+ViTs are purely due to the attention layer, and they seldom think about other parts of the ViT model.
 
-ViTs can simultaneously model long- and short-range dependencies, thanks to
-the Multi-Head Self-Attention mechanism in the Transformer block. Many researchers believe
-that the success of ViTs are purely due to the attention layer, and they seldom
-think about other parts of the ViT model.
+In the academic paper [When Shift Operation Meets Vision Transformer: An Extremely Simple Alternative to Attention 
+Mechanism](https://arxiv.org/abs/2201.10801) the authors propose to demystify the success of ViTs with the intro 
+of a NO PARAMETER operation in place of the attention operation. They swap the attention operation with a shifting 
+operation. In this example, we minimally implement the paper with close alignement to the author's [official 
+implementation](https://github.com/microsoft/SPACH/blob/main/models/shiftvit.py).
 
-In the academic paper
-[When Shift Operation Meets Vision Transformer: An Extremely Simple Alternative to Attention Mechanism](https://arxiv.org/abs/2201.10801)
-the authors propose to demystify the success of ViTs with the introduction of a **NO
-PARAMETER** operation in place of the attention operation. They swap the attention
-operation with a shifting operation.
-
-In this example, we minimally implement the paper with close alignement to the author's
-[official implementation](https://github.com/microsoft/SPACH/blob/main/models/shiftvit.py).
-
-This example requires TensorFlow 2.6 or higher, as well as TensorFlow Addons, which can
-be installed using the following command:
+This example requires TensorFlow 2.6 or higher, as well as TensorFlow Addons, which can be installed using the 
+following command:
 
 $ pip install -qq -U tensorflow-addons
 
+## Hyperparameters
 
+These are the hyperparameters that we have chosen for the experiment. Please feel free to tune them.
+
+## Data Augmentation
+
+The augmentation pipeline consists of:
+
+- Rescaling
+- Resizing
+- Random cropping
+- Random horizontal flipping
+
+_Note_: The image data augmentation layers do not apply data transformations at inference time. This means that
+when these layers are called with `training=False` they behave differently. Refer to the [documentation]
+(https://keras.io/api/layers/preprocessing_layers/image_augmentation/) for more details.
+
+## The ShiftViT architecture
+
+In this section, we build the architecture proposed in [the ShiftViT paper](https://arxiv.org/abs/2201.10801).
+
+| ![ShiftViT Architecture](https://i.imgur.com/CHU40HX.png) |
+| :--: |
+| Figure 1: The entire architecutre of ShiftViT.
+[Source](https://arxiv.org/abs/2201.10801) |
+
+The architecture as shown in Fig. 1, is inspired by [Swin Transformer: Hierarchical Vision Transformer using 
+Shifted Windows](https://arxiv.org/abs/2103.14030). Here the authors propose a modular architecture with 4 
+stages. Each stage works on its own spatial size, creating a hierarchical architecture.
+
+An input image of size `HxWx3` is split into non-overlapping patches of size `4x4`. This is done via the 
+patchify layer which results in individual tokens of feature size `48` (`4x4x3`). Each stage comprises two 
+parts:
+
+1. Embedding Generation
+2. Stacked Shift Blocks
+
+We discuss the stages and the modules in detail in what follows.
+
+_Note_: Compared to the [official implementation](https://github.com/microsoft/SPACH/blob/main/models/shiftvit.py)
+we restructure some key components to better fit the Keras API.
+
+The ShiftViT Block
+
+| ![ShiftViT block](https://i.imgur.com/IDe35vo.gif) |
+| :--: |
+| Figure 2: From the Model to a Shift Block. |
+
+Each stage in the ShiftViT architecture comprises of a Shift Block as shown in Fig 2.
+
+| ![Shift Vit Block](https://i.imgur.com/0q13pLu.png) |
+| :--: |
+| Figure 3: The Shift ViT Block. [Source](https://arxiv.org/abs/2201.10801) |
+
+The Shift Block as shown in Fig. 3, comprises of the following:
+
+1. Shift Operation
+2. Linear Normalization
+3. MLP Layer
+
+The MLP block
+
+The MLP block is intended to be a stack of densely-connected layers.s
+
+The DropPath layer
+
+Stochastic depth is a regularization technique that randomly drops a set of layers. During inference, the 
+layers are kept as they are. It is very similar to Dropout, but it operates on a block of layers rather
+than on individual nodes present inside a layer.
+
+#### Block
+
+The most important operation in this paper is the **shift opperation**. In this section, we describe the 
+shift operation and compare it with its original implementation provided by the authors.
+
+A generic feature map is assumed to have the shape `[N, H, W, C]`. Here we choose a `num_div` parameter 
+that decides the division size of the channels. The first 4 divisions are shifted (1 pixel) in the left, 
+right, up, and down direction. The remaining splits are kept as is. After partial shifting the shifted 
+channels are padded and the overflown pixels are chopped off. This completes the partial shifting 
+operation. In the original implementation, the code is approximately:
+
+```python
+out[:, g * 0:g * 1, :, :-1] = x[:, g * 0:g * 1, :, 1:]  # shift left
+out[:, g * 1:g * 2, :, 1:] = x[:, g * 1:g * 2, :, :-1]  # shift right
+out[:, g * 2:g * 3, :-1, :] = x[:, g * 2:g * 3, 1:, :]  # shift up
+out[:, g * 3:g * 4, 1:, :] = x[:, g * 3:g * 4, :-1, :]  # shift down
+
+out[:, g * 4:, :, :] = x[:, g * 4:, :, :]  # no shift
+```
+
+In TensorFlow it would be infeasible for us to assign shifted channels to a tensor in the middle of the 
+training process. This is why we have resorted to the following procedure:
+
+1. Split the channels with the `num_div` parameter.
+2. Select each of the first four spilts and shift and pad them in the respective directions.
+3. After shifting and padding, we concatenate the channel back.
+
+| ![Manim rendered animation for shift operation](https://i.imgur.com/PReeULP.gif) |
+| :--: |
+| Figure 4: The TensorFlow style shifting |
+
+The entire procedure is explained in the Fig. 4.
+
+### The ShiftViT blocks
+
+| ![Shift Blokcs](https://i.imgur.com/FKy5NnD.png) |
+| :--: |
+| Figure 5: Shift Blocks in the architecture. [Source](https://arxiv.org/abs/2201.10801) |
+
+Each stage of the architecture has shift blocks as shown in Fig.5. Each of these blocks contain a variable 
+number of stacked ShiftViT block (as built in the earlier section).
+
+Shift blocks are followed by a PatchMerging layer that scales down feature inputs. The PatchMerging layer 
+helps in the pyramidal structure of the model.
+
+#### The PatchMerging layer
+
+This layer merges the two adjacent tokens. This layer helps in scaling the features down spatially and 
+increasing the features up channel wise. We use a Conv2D layer to merge the patches.
+
+#### Stacked Shift Blocks
+
+Each stage will have a variable number of stacked ShiftViT Blocks, as suggested in the paper. This is a 
+generic layer that will contain the stacked shift vit blocks with the patch merging layer as well. 
+Combining the two operations (shift ViT block and patch merging) is a design choice we picked for better 
+code reusability.
+
+## Learning rate schedule
+
+In many experiments, we want to warm up the model with a slowly increasing learning rate and then cool 
+down the model with a slowly decaying learning rate. In the warmup cosine decay, the learning rate linearly 
+increases for the warmup steps and then decays with a cosine decay.
+
+## Conclusion
+
+The most impactful contribution of the paper is not the novel architecture, but the idea that hierarchical 
+ViTs trained with no attention can perform quite well. This opens up the question of how essential attention 
+is to the performance of ViTs.
+
+For curious minds, we would suggest reading the [ConvNexT](https://arxiv.org/abs/2201.03545) paper which 
+attends more to the training paradigms and architectural details of ViTs rather than providing a novel 
+architecture based on attention.
+
+Acknowledgements:
+
+- We would like to thank [PyImageSearch](https://pyimagesearch.com) for providing us with resources that 
+  helped in the completion of this project.
+- We would like to thank [JarvisLabs.ai](https://jarvislabs.ai/) for providing with the GPU credits.
+- We would like to thank [Manim Community](https://www.manim.community/) for the manim library.
+- A personal note of thanks to [Puja Roychowdhury](https://twitter.com/pleb_talks) for helping us with the 
+  Learning Rate Schedule.
 """
 
 
@@ -46,13 +190,8 @@ import tensorflow_addons as tfa
 SEED = 42
 keras.utils.set_random_seed(SEED)
 
-"""
+
 ## Hyperparameters
-
-These are the hyperparameters that we have chosen for the experiment.
-Please feel free to tune them.
-"""
-
 
 class Config(object):
     # DATA
@@ -86,12 +225,10 @@ class Config(object):
 
 config = Config()
 
-"""
+
 ## Load the CIFAR-10 dataset
 
-We use the CIFAR-10 dataset for our experiments.
-"""
-
+# Use the CIFAR-10 dataset for our experiments.
 (x_train, y_train), (x_test, y_test) = keras.datasets.cifar10.load_data()
 (x_train, y_train), (x_val, y_val) = (
     (x_train[:40000], y_train[:40000]),
@@ -111,24 +248,8 @@ val_ds = val_ds.batch(config.batch_size).prefetch(AUTO)
 test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test))
 test_ds = test_ds.batch(config.batch_size).prefetch(AUTO)
 
-"""
+
 ## Data Augmentation
-
-The augmentation pipeline consists of:
-
-- Rescaling
-- Resizing
-- Random cropping
-- Random horizontal flipping
-
-_Note_: The image data augmentation layers do not apply
-data transformations at inference time. This means that
-when these layers are called with `training=False` they
-behave differently. Refer to the
-[documentation](https://keras.io/api/layers/preprocessing_layers/image_augmentation/)
-for more details.
-"""
-
 
 def get_augmentation_model():
     """
@@ -144,65 +265,11 @@ def get_augmentation_model():
     return data_augmentation
 
 
-"""
 ## The ShiftViT architecture
 
-In this section, we build the architecture proposed in
-[the ShiftViT paper](https://arxiv.org/abs/2201.10801).
-
-| ![ShiftViT Architecture](https://i.imgur.com/CHU40HX.png) |
-| :--: |
-| Figure 1: The entire architecutre of ShiftViT.
-[Source](https://arxiv.org/abs/2201.10801) |
-
-The architecture as shown in Fig. 1, is inspired by
-[Swin Transformer: Hierarchical Vision Transformer using Shifted Windows](https://arxiv.org/abs/2103.14030).
-Here the authors propose a modular architecture with 4 stages. Each stage works on its
-own spatial size, creating a hierarchical architecture.
-
-An input image of size `HxWx3` is split into non-overlapping patches of size `4x4`.
-This is done via the patchify layer which results in individual tokens of feature size `48`
-(`4x4x3`). Each stage comprises two parts:
-
-1. Embedding Generation
-2. Stacked Shift Blocks
-
-We discuss the stages and the modules in detail in what follows.
-
-_Note_: Compared to the [official implementation](https://github.com/microsoft/SPACH/blob/main/models/shiftvit.py)
-we restructure some key components to better fit the Keras API.
-"""
-
-"""
-### The ShiftViT Block
-
-| ![ShiftViT block](https://i.imgur.com/IDe35vo.gif) |
-| :--: |
-| Figure 2: From the Model to a Shift Block. |
-
-Each stage in the ShiftViT architecture comprises of a Shift Block as shown in Fig 2.
-
-| ![Shift Vit Block](https://i.imgur.com/0q13pLu.png) |
-| :--: |
-| Figure 3: The Shift ViT Block. [Source](https://arxiv.org/abs/2201.10801) |
-
-The Shift Block as shown in Fig. 3, comprises of the following:
-
-1. Shift Operation
-2. Linear Normalization
-3. MLP Layer
-"""
-
-"""
-#### The MLP block
-
-The MLP block is intended to be a stack of densely-connected layers.s
-"""
-
-
 class MLP(layers.Layer):
-    """Get the MLP layer for each shift block.
-
+    """
+    Get the MLP layer for each shift block.
     Args:
         mlp_expand_ratio (int): The ratio with which the first feature map is expanded.
         mlp_dropout_rate (float): The rate for dropout.
@@ -234,19 +301,11 @@ class MLP(layers.Layer):
         return x
 
 
-"""
-#### The DropPath layer
-
-Stochastic depth is a regularization technique that randomly drops a set of
-layers. During inference, the layers are kept as they are. It is very
-similar to Dropout, but it operates on a block of layers rather
-than on individual nodes present inside a layer.
-"""
-
+# The DropPath layer
 
 class DropPath(layers.Layer):
-    """Drop Path also known as the Stochastic Depth layer.
-
+    """
+    Drop Path also known as the Stochastic Depth layer.
     Refernece:
         - https://keras.io/examples/vision/cct/#stochastic-depth-for-regularization
         - github.com:rwightman/pytorch-image-models
@@ -266,49 +325,11 @@ class DropPath(layers.Layer):
         return x
 
 
-"""
-#### Block
-
-The most important operation in this paper is the **shift opperation**. In this section,
-we describe the shift operation and compare it with its original implementation provided
-by the authors.
-
-A generic feature map is assumed to have the shape `[N, H, W, C]`. Here we choose a
-`num_div` parameter that decides the division size of the channels. The first 4 divisions
-are shifted (1 pixel) in the left, right, up, and down direction. The remaining splits
-are kept as is. After partial shifting the shifted channels are padded and the overflown
-pixels are chopped off. This completes the partial shifting operation.
-
-In the original implementation, the code is approximately:
-
-```python
-out[:, g * 0:g * 1, :, :-1] = x[:, g * 0:g * 1, :, 1:]  # shift left
-out[:, g * 1:g * 2, :, 1:] = x[:, g * 1:g * 2, :, :-1]  # shift right
-out[:, g * 2:g * 3, :-1, :] = x[:, g * 2:g * 3, 1:, :]  # shift up
-out[:, g * 3:g * 4, 1:, :] = x[:, g * 3:g * 4, :-1, :]  # shift down
-
-out[:, g * 4:, :, :] = x[:, g * 4:, :, :]  # no shift
-```
-
-In TensorFlow it would be infeasible for us to assign shifted channels to a tensor in the
-middle of the training process. This is why we have resorted to the following procedure:
-
-1. Split the channels with the `num_div` parameter.
-2. Select each of the first four spilts and shift and pad them in the respective
-directions.
-3. After shifting and padding, we concatenate the channel back.
-
-| ![Manim rendered animation for shift operation](https://i.imgur.com/PReeULP.gif) |
-| :--: |
-| Figure 4: The TensorFlow style shifting |
-
-The entire procedure is explained in the Fig. 4.
-"""
-
+# Block
 
 class ShiftViTBlock(layers.Layer):
-    """A unit ShiftViT Block
-
+    """
+    A unit ShiftViT Block
     Args:
         shift_pixel (int): The number of pixels to shift. Default to 1.
         mlp_expand_ratio (int): The ratio with which MLP features are
@@ -354,7 +375,9 @@ class ShiftViTBlock(layers.Layer):
         )
 
     def get_shift_pad(self, x, mode):
-        """Shifts the channels according to the mode chosen."""
+        """
+        Shifts the channels according to the mode chosen.
+        """
         if mode == "left":
             offset_height = 0
             offset_width = 0
@@ -410,32 +433,11 @@ class ShiftViTBlock(layers.Layer):
         return x
 
 
-"""
-### The ShiftViT blocks
 
-| ![Shift Blokcs](https://i.imgur.com/FKy5NnD.png) |
-| :--: |
-| Figure 5: Shift Blocks in the architecture. [Source](https://arxiv.org/abs/2201.10801) |
-
-Each stage of the architecture has shift blocks as shown in Fig.5. Each of these blocks
-contain a variable number of stacked ShiftViT block (as built in the earlier section).
-
-Shift blocks are followed by a PatchMerging layer that scales down feature inputs. The
-PatchMerging layer helps in the pyramidal structure of the model.
-"""
-
-"""
-#### The PatchMerging layer
-
-This layer merges the two adjacent tokens. This layer helps in scaling the features down
-spatially and increasing the features up channel wise. We use a Conv2D layer to merge the
-patches.
-"""
-
-
+# The PatchMerging layer
 class PatchMerging(layers.Layer):
-    """The Patch Merging layer.
-
+    """
+    The Patch Merging layer.
     Args:
         epsilon (float): The epsilon constant.
     """
@@ -458,20 +460,10 @@ class PatchMerging(layers.Layer):
         return x
 
 
-"""
-#### Stacked Shift Blocks
-
-Each stage will have a variable number of stacked ShiftViT Blocks, as suggested in
-the paper. This is a generic layer that will contain the stacked shift vit blocks
-with the patch merging layer as well. Combining the two operations (shift ViT
-block and patch merging) is a design choice we picked for better code reusability.
-"""
-
-# Note: This layer will have a different depth of stacking
-# for different stages on the model.
+# Stacked Shift Blocks
 class StackedShiftBlocks(layers.Layer):
-    """The layer containing stacked ShiftViTBlocks.
-
+    """
+    The layer containing stacked ShiftViTBlocks.
     Args:
         epsilon (float): The epsilon constant.
         mlp_dropout_rate (float): The dropout rate used in the MLP block.
@@ -541,16 +533,11 @@ class StackedShiftBlocks(layers.Layer):
         return x
 
 
-"""
-## The ShiftViT model
-
-Build the ShiftViT custom model.
-"""
-
+## Build the ShiftViT custom model.
 
 class ShiftViTModel(keras.Model):
-    """The ShiftViT Model.
-
+    """
+    The ShiftViT Model.
     Args:
         data_augmentation (keras.Model): A data augmentation model.
         projected_dim (int): The dimension to which the patches of the image are
@@ -694,14 +681,8 @@ model = ShiftViTModel(
     mlp_expand_ratio=config.mlp_expand_ratio,
 )
 
-"""
-## Learning rate schedule
 
-In many experiments, we want to warm up the model with a slowly increasing learning rate
-and then cool down the model with a slowly decaying learning rate. In the warmup cosine
-decay, the learning rate linearly increases for the warmup steps and then decays with a
-cosine decay.
-"""
+## Learning rate schedule
 
 # Some code is taken from:
 # https://www.kaggle.com/ashusma/training-rfcx-tensorflow-tpu-effnet-b2.
@@ -832,27 +813,3 @@ loss, acc_top1, acc_top5 = model.evaluate(test_ds)
 print(f"Loss: {loss:0.2f}")
 print(f"Top 1 test accuracy: {acc_top1*100:0.2f}%")
 print(f"Top 5 test accuracy: {acc_top5*100:0.2f}%")
-
-"""
-## Conclusion
-
-The most impactful contribution of the paper is not the novel architecture, but
-the idea that hierarchical ViTs trained with no attention can perform quite well. This
-opens up the question of how essential attention is to the performance of ViTs.
-
-For curious minds, we would suggest reading the
-[ConvNexT](https://arxiv.org/abs/2201.03545) paper which attends more to the training
-paradigms and architectural details of ViTs rather than providing a novel architecture
-based on attention.
-
-Acknowledgements:
-
-- We would like to thank [PyImageSearch](https://pyimagesearch.com) for providing us with
-resources that helped in the completion of this project.
-- We would like to thank [JarvisLabs.ai](https://jarvislabs.ai/) for providing with the
-GPU credits.
-- We would like to thank [Manim Community](https://www.manim.community/) for the manim
-library.
-- A personal note of thanks to [Puja Roychowdhury](https://twitter.com/pleb_talks) for
-helping us with the Learning Rate Schedule.
-"""
