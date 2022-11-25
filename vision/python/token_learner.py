@@ -1,6 +1,7 @@
 """
 Title: Learning to tokenize in Vision Transformers
-Authors: [Aritra Roy Gosthipaty](https://twitter.com/ariG23498), [Sayak Paul](https://twitter.com/RisingSayak) (equal contribution)
+Authors: [Aritra Roy Gosthipaty](https://twitter.com/ariG23498), [Sayak Paul]
+(https://twitter.com/RisingSayak) (equal contribution)
 Date created: 2021/12/10
 Last modified: 2021/12/15
 Description: Adaptively generating a smaller number of tokens for Vision Transformers.
@@ -11,54 +12,184 @@ Description: Adaptively generating a smaller number of tokens for Vision Transfo
 Vision Transformers ([Dosovitskiy et al.](https://arxiv.org/abs/2010.11929)) and many
 other Transformer-based architectures ([Liu et al.](https://arxiv.org/abs/2103.14030),
 [Yuan et al.](https://arxiv.org/abs/2101.11986), etc.) have shown strong results in
-image recognition. The following provides a brief overview of the components involved in the
-Vision Transformer architecture for image classification:
+image recognition. The following provides a brief overview of the components involved 
+in the Vision Transformer architecture for image classification:
 
 * Extract small patches from input images.
 * Linearly project those patches.
 * Add positional embeddings to these linear projections.
-* Run these projections through a series of Transformer ([Vaswani et al.](https://arxiv.org/abs/1706.03762))
-blocks.
-* Finally, take the representation from the final Transformer block and add a
-classification head.
+* Run these projections through a series of Transformer blocks.
+ ([Vaswani et al.](https://arxiv.org/abs/1706.03762))
+* Finally, take the representation from the final Transformer block and add a classifi-
+  cation head.
 
 If we take 224x224 images and extract 16x16 patches, we get a total of 196 patches (also
 called tokens) for each image. The number of patches increases as we increase the
-resolution, leading to higher memory footprint. Could we use a reduced
-number of patches without having to compromise performance?
-Ryoo et al. investigate this question in
-[TokenLearner: Adaptive Space-Time Tokenization for Videos](https://openreview.net/forum?id=z-l1kpDXs88).
-They introduce a novel module called **TokenLearner** that can help reduce the number
-of patches used by a Vision Transformer (ViT) in an adaptive manner. With TokenLearner
+resolution, leading to higher memory footprint. Could we use a reduced number of patches 
+without having to compromise performance? Ryoo et al. investigate this question in
+[TokenLearner: Adaptive Space-Time Tokenization for Videos]
+(https://openreview.net/forum?id=z-l1kpDXs88).
+
+They introduce a novel module called **TokenLearner** that can help reduce the number of 
+patches used by a Vision Transformer (ViT) in an adaptive manner. With TokenLearner
 incorporated in the standard ViT architecture, they are able to reduce the amount of
 compute (measured in FLOPS) used by the model.
 
-In this example, we implement the TokenLearner module and demonstrate its
-performance with a mini ViT and the CIFAR-10 dataset. We make use of the following
-references:
+In this example, we implement the TokenLearner module and demonstrate its performance with 
+a mini ViT and the CIFAR-10 dataset. We make use of the following references:
 
-* [Official TokenLearner code](https://github.com/google-research/scenic/blob/main/scenic/projects/token_learner/model.py)
-* [Image Classification with ViTs on keras.io](https://keras.io/examples/vision/image_classification_with_vision_transformer/)
-* [TokenLearner slides from NeurIPS 2021](https://nips.cc/media/neurips-2021/Slides/26578.pdf)
+* [Official TokenLearner code]
+  (https://github.com/google-research/scenic/blob/main/scenic/projects/token_learner/model.py)
+* [Image Classification with ViTs on keras.io]
+  (https://keras.io/examples/vision/image_classification_with_vision_transformer/)
+* [TokenLearner slides from NeurIPS 2021]
+  (https://nips.cc/media/neurips-2021/Slides/26578.pdf)
+
+Intall tensorflow-addons
+
+$ pip install tensorflow-addons
+
+## Hyperparameters
+
+Please feel free to change the hyperparameters and check your results. The best way to develop 
+intuition about the architecture is to experiment with it.
+
+## Data augmentation
+
+The augmentation pipeline consists of:
+
+- Rescaling
+- Resizing
+- Random cropping (fixed-sized or random sized)
+- Random horizontal flipping
+
+Note image data augmentation layers do not apply data transformations at inference time. This 
+means that when these layers are called with `training=False` they behave differently. Refer
+[to the documentation](https://keras.io/api/layers/preprocessing_layers/image_augmentation/) 
+for more details.
+
+## Positional embedding module
+
+A [Transformer](https://arxiv.org/abs/1706.03762) architecture consists of **multi-head self 
+attention** layers and **fully-connected feed forward** networks (MLP) as the main components. 
+Both these components are _permutation invariant_: they're not aware of feature order.
+
+To overcome this problem we inject tokens with positional information. The `position_embedding` 
+function adds this positional information to the linearly projected tokens.
+
+## MLP block for Transformer
+
+This serves as the Fully Connected Feed Forward block for our Transformer.
+
+## TokenLearner module
+
+The following figure presents a pictorial overview of the module
+([source](https://ai.googleblog.com/2021/12/improving-vision-transformer-efficiency.html)).
+
+![TokenLearner module GIF]
+(https://blogger.googleusercontent.com/img/a/AVvXsEiylT3_nmd9-tzTnz3g3Vb4eTn-L5sOwtGJOad6t2we7FsjXSpbLDpuPrlInAhtE5hGCA_PfYTJtrIOKfLYLYGcYXVh1Ksfh_C1ZC-C8gw6GKtvrQesKoMrEA_LU_Gd5srl5-3iZDgJc1iyCELoXtfuIXKJ2ADDHOBaUjhU8lXTVdr2E7bCVaFgVHHkmA=w640-h208)
+
+The TokenLearner module takes as input an image-shaped tensor. It then passes it through multiple 
+single-channel convolutional layers extracting different spatial attention maps focusing on 
+different parts of the input. These attention maps are then element-wise multiplied to the input 
+and result is aggregated with pooling. This pooled output can be trated as a summary of the input 
+and has much lesser number of patches (8, for example)
+than the original one (196, for example).
+
+Using multiple convolution layers helps with expressivity. Imposing a form of spatial attention 
+helps retain relevant information from the inputs. Both of these components are crucial to make 
+TokenLearner work, especially when we are significantly reducing the number of patches.
+
+# VIT Moel with TokenLearner
+
+As shown in the [TokenLearner paper](https://openreview.net/forum?id=z-l1kpDXs88), it is almost 
+always advantageous to include the TokenLearner module in the middle of the network.
+
+## Results
+
+We experimented with and without the TokenLearner inside the mini ViT we implemented
+(with the same hyperparameters presented in this example). Here are our results:
+
+| **TokenLearner** | **# tokens in<br> TokenLearner** | **Top-1 Acc<br>(Averaged across 5 runs)** | **GFLOPs** | **TensorBoard** |
+|:---:|:---:|:---:|:---:|:---:|
+| N | - | 56.112% | 0.0184 | [Link](https://tensorboard.dev/experiment/vkCwM49dQZ2RiK0ZT4mj7w/) |
+| Y | 8 | **56.55%** | **0.0153** | [Link](https://tensorboard.dev/experiment/vkCwM49dQZ2RiK0ZT4mj7w/) |
+| N | - | 56.37% | 0.0184 | [Link](https://tensorboard.dev/experiment/hdyJ4wznQROwqZTgbtmztQ/) |
+| Y | 4 | **56.4980%** | **0.0147** | [Link](https://tensorboard.dev/experiment/hdyJ4wznQROwqZTgbtmztQ/) |
+| N | - (# Transformer layers: 8) | 55.36% | 0.0359 | [Link](https://tensorboard.dev/experiment/sepBK5zNSaOtdCeEG6SV9w/) |
+
+TokenLearner is able to consistently outperform our mini ViT without the module. It is also 
+interesting to notice that it was also able to outperform a deeper version of our mini ViT 
+(with 8 layers). The authors also report similar observations in the paper and they attribute 
+this to the adaptiveness of TokenLearner.
+
+One should also note that the FLOPs count **decreases** considerably with the addition of the 
+TokenLearner module. With less FLOPs count the TokenLearner module is able to deliver better 
+results. This aligns very well with the authors' findings.
+
+Additionally, the authors [introduced] a newer version of the TokenLearner for smaller training 
+data regimes. Quoting the authors:
+(https://github.com/google-research/scenic/blob/main/scenic/projects/token_learner/model.py#L104)
+
+> Instead of using 4 conv. layers with small channels to implement spatial attention,
+  this version uses 2 grouped conv. layers with more channels. It also uses softmax
+  instead of sigmoid. We confirmed that this version works better when having limited
+  training data, such as training with ImageNet1K from scratch.
+
+We experimented with this module and in the following table we summarize the results:
+
+| **# Groups** | **# Tokens** | **Top-1 Acc** | **GFLOPs** | **TensorBoard** |
+|:---:|:---:|:---:|:---:|:---:|
+| 4 | 4 | 54.638% | 0.0149 | [Link](https://tensorboard.dev/experiment/KmfkGqAGQjikEw85phySmw/) |
+| 8 | 8 | 54.898% | 0.0146 | [Link](https://tensorboard.dev/experiment/0PpgYOq9RFWV9njX6NJQ2w/) |
+| 4 | 8 | 55.196% | 0.0149 | [Link](https://tensorboard.dev/experiment/WUkrHbZASdu3zrfmY4ETZg/) |
+
+Please note that we used the same hyperparameters presented in this example. Our
+implementation is available
+[in this notebook](https://github.com/ariG23498/TokenLearner/blob/master/TokenLearner-V1.1.ipynb).
+We acknowledge that the results with this new TokenLearner module are slightly off
+than expected and this might mitigate with hyperparameter tuning.
+
+*Note*: To compute the FLOPs of our models we used
+[this utility](https://github.com/AdityaKane2001/regnety/blob/main/regnety/utils/model_utils.py#L27)
+from [this repository](https://github.com/AdityaKane2001/regnety).
+
+## Number of parameters
+
+You may have noticed that adding the TokenLearner module increases the number of parameters of 
+the base network. But that does not mean it is less efficient as shown by [Dehghani et al.]
+(https://arxiv.org/abs/2110.12894). Similar findings were reported by [Bello et al.]
+(https://arxiv.org/abs/2103.07579) as well. The TokenLearner module helps reducing the FLOPS 
+in the overall network thereby helping to reduce the memory
+footprint.
+
+## Final notes
+
+*TokenFuser: The authors of the paper also propose another module named TokenFuser. This module 
+helps in remapping the representation of the TokenLearner output back to its original spatial 
+resolution. To reuse the TokenLearner in the ViT architecture, the TokenFuser is a must. We 
+first learn the tokens from the TokenLearner, build a representation of the tokens from a 
+Transformer layer and then remap the representation into the original spatial resolution, so 
+that it can again be consumed by a TokenLearner. Note here that you can only use the module
+of TokenLearner  once in entire ViT model if not paired with the TokenFuser.
+*Use of these modules for video: The authors also suggest that TokenFuser goes really well with 
+Vision Transformers for Videos ([Arnab et al.](https://arxiv.org/abs/2103.15691)).
+
+We are grateful to [JarvisLabs](https://jarvislabs.ai/) and
+[Google Developers Experts](https://developers.google.com/programs/experts/)
+program for helping with GPU credits. Also, we are thankful to Michael Ryoo (first
+author of TokenLearner) for fruitful discussions.
+
+| Trained Model | Demo |
+| :--: | :--: |
+| [![Generic badge](https://img.shields.io/badge/🤗%20Model-TokenLearner-black.svg)]
+(https://huggingface.co/keras-io/learning_to_tokenize_in_ViT) | [![Generic badge]
+(https://img.shields.io/badge/🤗%20Spaces-TokenLearner-black.svg)]
+(https://huggingface.co/spaces/keras-io/token_learner) |
 """
 
-"""
-## Setup
-
-We need to install TensorFlow Addons to run this example. To install it, execute the
-following:
-
-```shell
-pip install tensorflow-addons
-```
-"""
-
-"""
-## Imports
-"""
 
 import tensorflow as tf
-
 from tensorflow import keras
 from tensorflow.keras import layers
 import tensorflow_addons as tfa
@@ -66,15 +197,10 @@ import tensorflow_addons as tfa
 from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
-
 import math
 
-"""
-## Hyperparameters
 
-Please feel free to change the hyperparameters and check your results. The best way to
-develop intuition about the architecture is to experiment with it.
-"""
+## Hyperparameters
 
 # DATA
 BATCH_SIZE = 256
@@ -107,9 +233,8 @@ MLP_UNITS = [
 # TOKENLEARNER
 NUM_TOKENS = 4
 
-"""
+
 ## Load and prepare the CIFAR-10 dataset
-"""
 
 # Load the CIFAR-10 dataset.
 (x_train, y_train), (x_test, y_test) = keras.datasets.cifar10.load_data()
@@ -131,16 +256,8 @@ val_ds = val_ds.batch(BATCH_SIZE).prefetch(AUTO)
 test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test))
 test_ds = test_ds.batch(BATCH_SIZE).prefetch(AUTO)
 
-"""
+
 ## Data augmentation
-
-The augmentation pipeline consists of:
-
-- Rescaling
-- Resizing
-- Random cropping (fixed-sized or random sized)
-- Random horizontal flipping
-"""
 
 data_augmentation = keras.Sequential(
     [
@@ -152,26 +269,8 @@ data_augmentation = keras.Sequential(
     name="data_augmentation",
 )
 
-"""
-Note that image data augmentation layers do not apply data transformations at inference time.
-This means that when these layers are called with `training=False` they behave differently. Refer
-[to the documentation](https://keras.io/api/layers/preprocessing_layers/image_augmentation/) for more
-details.
-"""
 
-"""
 ## Positional embedding module
-
-A [Transformer](https://arxiv.org/abs/1706.03762) architecture consists of **multi-head
-self attention** layers and **fully-connected feed forward** networks (MLP) as the main
-components. Both these components are _permutation invariant_: they're not aware of
-feature order.
-
-To overcome this problem we inject tokens with positional information. The
-`position_embedding` function adds this positional information to the linearly projected
-tokens.
-"""
-
 
 def position_embedding(
     projected_patches, num_patches=NUM_PATCHES, projection_dim=PROJECTION_DIM
@@ -188,12 +287,7 @@ def position_embedding(
     return projected_patches + encoded_positions
 
 
-"""
 ## MLP block for Transformer
-
-This serves as the Fully Connected Feed Forward block for our Transformer.
-"""
-
 
 def mlp(x, dropout_rate, hidden_units):
     # Iterate over the hidden units and
@@ -204,26 +298,7 @@ def mlp(x, dropout_rate, hidden_units):
     return x
 
 
-"""
 ## TokenLearner module
-
-The following figure presents a pictorial overview of the module
-([source](https://ai.googleblog.com/2021/12/improving-vision-transformer-efficiency.html)).
-
-![TokenLearner module GIF](https://blogger.googleusercontent.com/img/a/AVvXsEiylT3_nmd9-tzTnz3g3Vb4eTn-L5sOwtGJOad6t2we7FsjXSpbLDpuPrlInAhtE5hGCA_PfYTJtrIOKfLYLYGcYXVh1Ksfh_C1ZC-C8gw6GKtvrQesKoMrEA_LU_Gd5srl5-3iZDgJc1iyCELoXtfuIXKJ2ADDHOBaUjhU8lXTVdr2E7bCVaFgVHHkmA=w640-h208)
-
-The TokenLearner module takes as input an image-shaped tensor. It then passes it through
-multiple single-channel convolutional layers extracting different spatial attention maps
-focusing on different parts of the input. These attention maps are then element-wise
-multiplied to the input and result is aggregated with pooling. This pooled output can be
-trated as a summary of the input and has much lesser number of patches (8, for example)
-than the original one (196, for example).
-
-Using multiple convolution layers helps with expressivity. Imposing a form of spatial
-attention helps retain relevant information from the inputs. Both of these components are
-crucial to make TokenLearner work, especially when we are significantly reducing the number of patches.
-"""
-
 
 def token_learner(inputs, number_of_tokens=NUM_TOKENS):
     # Layer normalize the inputs.
@@ -287,10 +362,7 @@ def token_learner(inputs, number_of_tokens=NUM_TOKENS):
     return outputs
 
 
-"""
 ## Transformer block
-"""
-
 
 def transformer(encoded_patches):
     # Layer normalization 1.
@@ -315,10 +387,7 @@ def transformer(encoded_patches):
     return encoded_patches
 
 
-"""
 ## ViT model with the TokenLearner module
-"""
-
 
 def create_vit_classifier(use_token_learner=True, token_learner_units=NUM_TOKENS):
     inputs = layers.Input(shape=INPUT_SHAPE)  # (B, H, W, C)
@@ -375,16 +444,7 @@ def create_vit_classifier(use_token_learner=True, token_learner_units=NUM_TOKENS
     return model
 
 
-"""
-As shown in the [TokenLearner paper](https://openreview.net/forum?id=z-l1kpDXs88), it is
-almost always advantageous to include the TokenLearner module in the middle of the
-network.
-"""
-
-"""
 ## Training utility
-"""
-
 
 def run_experiment(model):
     # Initialize the AdamW optimizer.
@@ -426,94 +486,7 @@ def run_experiment(model):
     print(f"Test top 5 accuracy: {round(top_5_accuracy * 100, 2)}%")
 
 
-"""
 ## Train and evaluate a ViT with TokenLearner
-"""
 
 vit_token_learner = create_vit_classifier()
 run_experiment(vit_token_learner)
-
-"""
-## Results
-
-We experimented with and without the TokenLearner inside the mini ViT we implemented
-(with the same hyperparameters presented in this example). Here are our results:
-
-| **TokenLearner** | **# tokens in<br> TokenLearner** | **Top-1 Acc<br>(Averaged across 5 runs)** | **GFLOPs** | **TensorBoard** |
-|:---:|:---:|:---:|:---:|:---:|
-| N | - | 56.112% | 0.0184 | [Link](https://tensorboard.dev/experiment/vkCwM49dQZ2RiK0ZT4mj7w/) |
-| Y | 8 | **56.55%** | **0.0153** | [Link](https://tensorboard.dev/experiment/vkCwM49dQZ2RiK0ZT4mj7w/) |
-| N | - | 56.37% | 0.0184 | [Link](https://tensorboard.dev/experiment/hdyJ4wznQROwqZTgbtmztQ/) |
-| Y | 4 | **56.4980%** | **0.0147** | [Link](https://tensorboard.dev/experiment/hdyJ4wznQROwqZTgbtmztQ/) |
-| N | - (# Transformer layers: 8) | 55.36% | 0.0359 | [Link](https://tensorboard.dev/experiment/sepBK5zNSaOtdCeEG6SV9w/) |
-
-TokenLearner is able to consistently outperform our mini ViT without the module. It is
-also interesting to notice that it was also able to outperform a deeper version of our
-mini ViT (with 8 layers). The authors also report similar observations in the paper and
-they attribute this to the adaptiveness of TokenLearner.
-
-One should also note that the FLOPs count **decreases** considerably with the addition of
-the TokenLearner module. With less FLOPs count the TokenLearner module is able to
-deliver better results. This aligns very well with the authors' findings.
-
-Additionally, the authors [introduced](https://github.com/google-research/scenic/blob/main/scenic/projects/token_learner/model.py#L104)
-a newer version of the TokenLearner for smaller training data regimes. Quoting the authors:
-
-> Instead of using 4 conv. layers with small channels to implement spatial attention,
-  this version uses 2 grouped conv. layers with more channels. It also uses softmax
-  instead of sigmoid. We confirmed that this version works better when having limited
-  training data, such as training with ImageNet1K from scratch.
-
-We experimented with this module and in the following table we summarize the results:
-
-| **# Groups** | **# Tokens** | **Top-1 Acc** | **GFLOPs** | **TensorBoard** |
-|:---:|:---:|:---:|:---:|:---:|
-| 4 | 4 | 54.638% | 0.0149 | [Link](https://tensorboard.dev/experiment/KmfkGqAGQjikEw85phySmw/) |
-| 8 | 8 | 54.898% | 0.0146 | [Link](https://tensorboard.dev/experiment/0PpgYOq9RFWV9njX6NJQ2w/) |
-| 4 | 8 | 55.196% | 0.0149 | [Link](https://tensorboard.dev/experiment/WUkrHbZASdu3zrfmY4ETZg/) |
-
-Please note that we used the same hyperparameters presented in this example. Our
-implementation is available
-[in this notebook](https://github.com/ariG23498/TokenLearner/blob/master/TokenLearner-V1.1.ipynb).
-We acknowledge that the results with this new TokenLearner module are slightly off
-than expected and this might mitigate with hyperparameter tuning.
-
-*Note*: To compute the FLOPs of our models we used
-[this utility](https://github.com/AdityaKane2001/regnety/blob/main/regnety/utils/model_utils.py#L27)
-from [this repository](https://github.com/AdityaKane2001/regnety).
-"""
-
-"""
-## Number of parameters
-
-You may have noticed that adding the TokenLearner module increases the number of
-parameters of the base network. But that does not mean it is less efficient as shown by
-[Dehghani et al.](https://arxiv.org/abs/2110.12894). Similar findings were reported
-by [Bello et al.](https://arxiv.org/abs/2103.07579) as well. The TokenLearner module
-helps reducing the FLOPS in the overall network thereby helping to reduce the memory
-footprint.
-"""
-
-"""
-## Final notes
-
-* TokenFuser: The authors of the paper also propose another module named TokenFuser. This
-module helps in remapping the representation of the TokenLearner output back to its
-original spatial resolution. To reuse the TokenLearner in the ViT architecture, the
-TokenFuser is a must. We first learn the tokens from the TokenLearner, build a
-representation of the tokens from a Transformer layer and then remap the representation
-into the original spatial resolution, so that it can again be consumed by a TokenLearner.
-Note here that you can only use the TokenLearner module once in entire ViT model if not
-paired with the TokenFuser.
-* Use of these modules for video: The authors also suggest that TokenFuser goes really
-well with Vision Transformers for Videos ([Arnab et al.](https://arxiv.org/abs/2103.15691)).
-
-We are grateful to [JarvisLabs](https://jarvislabs.ai/) and
-[Google Developers Experts](https://developers.google.com/programs/experts/)
-program for helping with GPU credits. Also, we are thankful to Michael Ryoo (first
-author of TokenLearner) for fruitful discussions.
-
-| Trained Model | Demo |
-| :--: | :--: |
-| [![Generic badge](https://img.shields.io/badge/🤗%20Model-TokenLearner-black.svg)](https://huggingface.co/keras-io/learning_to_tokenize_in_ViT) | [![Generic badge](https://img.shields.io/badge/🤗%20Spaces-TokenLearner-black.svg)](https://huggingface.co/spaces/keras-io/token_learner) |
-"""
