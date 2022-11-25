@@ -3,32 +3,103 @@ Title: Image classification with Swin Transformers
 Author: [Rishit Dagli](https://twitter.com/rishit_dagli)
 Date created: 2021/09/08
 Last modified: 2021/09/08
-Description: Image classification using Swin Transformers, a general-purpose backbone for computer vision.
-"""
-"""
-This example implements [Swin Transformer: Hierarchical Vision Transformer using Shifted Windows](https://arxiv.org/abs/2103.14030)
-by Liu et al. for image classification, and demonstrates it on the
+Description: Image classification using Swin Transformers, a general-purpose backbone 
+for computer vision.
+
+The example implements [Swin Transformer: Hierarchical Vision Transformer using Shifted 
+Windows](https://arxiv.org/abs/2103.14030) by Liu et al. for image classification, and 
+demonstrates it on the the following weblink. 
 [CIFAR-100 dataset](https://www.cs.toronto.edu/~kriz/cifar.html).
 
-Swin Transformer (**S**hifted **Win**dow Transformer) can serve as a general-purpose backbone
-for computer vision. Swin Transformer is a hierarchical Transformer whose
-representations are computed with _shifted windows_. The shifted window scheme
-brings greater efficiency by limiting self-attention computation to
-non-overlapping local windows while also allowing for cross-window connections.
-This architecture has the flexibility to model information at various scales and has
-a linear computational complexity with respect to image size.
+Swin Transformer (**S**hifted **Win**dow Transformer) can serve as a general-purpose 
+backbone for computer vision. Swin Transformer is a hierarchical Transformer whose
+representations are computed with _shifted windows_. The shifted window scheme brings 
+greater efficiency by limiting self-attention computation to non-overlapping local 
+windows while also allowing for cross-window connections. This architecture has the 
+flexibility to model information at various scales and has a linear computational 
+complexity with respect to image size.
 
-This example requires TensorFlow 2.5 or higher, as well as TensorFlow Addons,
-which can be installed using the following commands:
+This example requires TensorFlow 2.5 or higher, as well as TensorFlow Addons, which can 
+be installed using the following commands:
+
+$ pip install -U tensorflow-addons
+
+## Prepare the data
+
+We load the CIFAR-100 dataset through `tf.keras.datasets`, normalize the images, and 
+convert the integer labels to one-hot encoded vectors.
+
+## Configure the hyperparameters
+
+A key parameter to pick is the `patch_size`, the size of the input patches. In order 
+to use each pixel as an individual input, you can set `patch_size` to `(1, 1)`. Below, 
+we take inspiration from the original paper settings for training on ImageNet-1K, 
+keeping most of the original settings for this example.
+
+## Helper functions
+
+We create two helper functions to help us get a sequence of patches from the image, 
+merge patches, and apply dropout.
+
+## Window based multi-head self-attention
+
+Usually Transformers perform global self-attention, where the relationships between a 
+token and all other tokens are computed. The global computation leads to quadratic
+complexity with respect to the number of tokens. Here, as the [original paper]
+(https://arxiv.org/abs/2103.14030) suggests, we compute self-attention within local 
+windows, in a non-overlapping manner. Global self-attention leads to quadratic 
+computational complexity in the number of patches, whereas window-based self-attention 
+leads to linear complexity and is easily scalable.
+
+## The complete Swin Transformer model
+
+Finally, we put together the complete Swin Transformer by replacing the standard multi-
+head attention (MHA) with shifted windows attention. As suggested in the original paper, 
+we create a model comprising of a shifted window-based MHA layer, followed by a 2-layer 
+MLP with GELU nonlinearity in between, applying 'LayerNormalization' before each MSA 
+layer and each MLP, and a residual connection after each of these layers.
+
+Notice that we only create a simple MLP with 2 Dense and 2 Dropout layers. Often you 
+will see models using ResNet-50 as the MLP which is quite standard in the literature. 
+However in this paper the authors use a 2-layer MLP with GELU nonlinearity in between.
+
+## Model training and evaluation
+
+# Extract and embed patches
+
+We first create 3 layers to help us extract, embed and merge patches from the images 
+on top of which we will later use the Swin Transformer class we built.
+
+# Train on CIFAR-100
+
+We train the model on CIFAR-100. Here, we only train the model for 40 epochs to keep 
+the training time short in this example. In practice, you should train for 150 epochs 
+to reach convergence.
+
+The Swin Transformer model we just trained has just 152K parameters, and it gets us 
+to ~75% test top-5 accuracy within just 40 epochs without any signs of overfitting
+as well as seen in above graph. This means we can train this network for longer
+(perhaps with a bit more regularization) and obtain even better performance. This 
+performance can further be improved by additional techniques like cosine decay 
+learning rate schedule, other data augmentation techniques. While experimenting,
+I tried training the model for 150 epochs with a slightly higher dropout and greater
+embedding dimensions which pushes the performance to ~72% test accuracy on CIFAR-100
+as you can see in the screenshot.
+
+![Results of training for longer](https://i.imgur.com/9vnQesZ.png)
+
+The authors present a top-1 accuracy of 87.3% on ImageNet. The authors also present
+a number of experiments to study how input sizes, optimizers etc. affect the final
+performance of this model. The authors further present using this model for object 
+detection, semantic segmentation and instance segmentation as well and report 
+competitive results for these. You are strongly advised to also check out the
+[original paper](https://arxiv.org/abs/2103.14030).
+
+This example takes inspiration from the official weblimk. 
+[PyTorch](https://github.com/microsoft/Swin-Transformer)
+[TensorFlow](https://github.com/VcampSoldiers/Swin-Transformer-Tensorflow) implementations.
 """
 
-"""shell
-pip install -U tensorflow-addons
-"""
-
-"""
-## Setup
-"""
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -37,12 +108,8 @@ import tensorflow_addons as tfa
 from tensorflow import keras
 from tensorflow.keras import layers
 
-"""
-## Prepare the data
 
-We load the CIFAR-100 dataset through `tf.keras.datasets`,
-normalize the images, and convert the integer labels to one-hot encoded vectors.
-"""
+## Prepare the data
 
 num_classes = 100
 input_shape = (32, 32, 3)
@@ -63,14 +130,8 @@ for i in range(25):
     plt.imshow(x_train[i])
 plt.show()
 
-"""
-## Configure the hyperparameters
 
-A key parameter to pick is the `patch_size`, the size of the input patches.
-In order to use each pixel as an individual input, you can set `patch_size` to `(1, 1)`.
-Below, we take inspiration from the original paper settings
-for training on ImageNet-1K, keeping most of the original settings for this example.
-"""
+## Configure the hyperparameters
 
 patch_size = (2, 2)  # 2-by-2 sized patches
 dropout_rate = 0.03  # Dropout rate
@@ -92,13 +153,8 @@ validation_split = 0.1
 weight_decay = 0.0001
 label_smoothing = 0.1
 
-"""
+
 ## Helper functions
-
-We create two helper functions to help us get a sequence of
-patches from the image, merge patches, and apply dropout.
-"""
-
 
 def window_partition(x, window_size):
     _, height, width, channels = x.shape
@@ -140,17 +196,7 @@ class DropPath(layers.Layer):
         return output
 
 
-"""
 ## Window based multi-head self-attention
-
-Usually Transformers perform global self-attention, where the relationships between
-a token and all other tokens are computed. The global computation leads to quadratic
-complexity with respect to the number of tokens. Here, as the [original paper](https://arxiv.org/abs/2103.14030)
-suggests, we compute self-attention within local windows, in a non-overlapping manner.
-Global self-attention leads to quadratic computational complexity in the number of patches,
-whereas window-based self-attention leads to linear complexity and is easily scalable.
-"""
-
 
 class WindowAttention(layers.Layer):
     def __init__(
@@ -237,22 +283,7 @@ class WindowAttention(layers.Layer):
         return x_qkv
 
 
-"""
 ## The complete Swin Transformer model
-
-Finally, we put together the complete Swin Transformer by replacing the standard multi-head
-attention (MHA) with shifted windows attention. As suggested in the
-original paper, we create a model comprising of a shifted window-based MHA
-layer, followed by a 2-layer MLP with GELU nonlinearity in between, applying
-`LayerNormalization` before each MSA layer and each MLP, and a residual
-connection after each of these layers.
-
-Notice that we only create a simple MLP with 2 Dense and
-2 Dropout layers. Often you will see models using ResNet-50 as the MLP which is
-quite standard in the literature. However in this paper the authors use a
-2-layer MLP with GELU nonlinearity in between.
-"""
-
 
 class SwinTransformer(layers.Layer):
     def __init__(
@@ -379,16 +410,9 @@ class SwinTransformer(layers.Layer):
         return x
 
 
-"""
 ## Model training and evaluation
 
-### Extract and embed patches
-
-We first create 3 layers to help us extract, embed and merge patches from the
-images on top of which we will later use the Swin Transformer class we built.
-"""
-
-
+# Extract and embed patches
 class PatchExtract(layers.Layer):
     def __init__(self, patch_size, **kwargs):
         super(PatchExtract, self).__init__(**kwargs)
@@ -441,11 +465,7 @@ class PatchMerging(tf.keras.layers.Layer):
         return self.linear_trans(x)
 
 
-"""
-### Build the model
-
-We put together the Swin Transformer model.
-"""
+# Build the model: put together the Swin Transformer model.
 
 input = layers.Input(input_shape)
 x = layers.RandomCrop(image_dimension, image_dimension)(input)
@@ -476,13 +496,8 @@ x = PatchMerging((num_patch_x, num_patch_y), embed_dim=embed_dim)(x)
 x = layers.GlobalAveragePooling1D()(x)
 output = layers.Dense(num_classes, activation="softmax")(x)
 
-"""
-### Train on CIFAR-100
 
-We train the model on CIFAR-100. Here, we only train the model
-for 40 epochs to keep the training time short in this example.
-In practice, you should train for 150 epochs to reach convergence.
-"""
+# Train on CIFAR-100
 
 model = keras.Model(input, output)
 model.compile(
@@ -504,10 +519,8 @@ history = model.fit(
     validation_split=validation_split,
 )
 
-"""
-Let's visualize the training progress of the model.
-"""
 
+# Visualize the training progress of the model.
 plt.plot(history.history["loss"], label="train_loss")
 plt.plot(history.history["val_loss"], label="val_loss")
 plt.xlabel("Epochs")
@@ -517,36 +530,8 @@ plt.legend()
 plt.grid()
 plt.show()
 
-"""
-Let's display the final results of the training on CIFAR-100.
-"""
-
+# -Display the final results of the training on CIFAR-100.
 loss, accuracy, top_5_accuracy = model.evaluate(x_test, y_test)
 print(f"Test loss: {round(loss, 2)}")
 print(f"Test accuracy: {round(accuracy * 100, 2)}%")
 print(f"Test top 5 accuracy: {round(top_5_accuracy * 100, 2)}%")
-
-"""
-The Swin Transformer model we just trained has just 152K parameters, and it gets
-us to ~75% test top-5 accuracy within just 40 epochs without any signs of overfitting
-as well as seen in above graph. This means we can train this network for longer
-(perhaps with a bit more regularization) and obtain even better performance.
-This performance can further be improved by additional techniques like cosine
-decay learning rate schedule, other data augmentation techniques. While experimenting,
-I tried training the model for 150 epochs with a slightly higher dropout and greater
-embedding dimensions which pushes the performance to ~72% test accuracy on CIFAR-100
-as you can see in the screenshot.
-
-![Results of training for longer](https://i.imgur.com/9vnQesZ.png)
-
-The authors present a top-1 accuracy of 87.3% on ImageNet. The authors also present
-a number of experiments to study how input sizes, optimizers etc. affect the final
-performance of this model. The authors further present using this model for object detection,
-semantic segmentation and instance segmentation as well and report competitive results
-for these. You are strongly advised to also check out the
-[original paper](https://arxiv.org/abs/2103.14030).
-
-This example takes inspiration from the official
-[PyTorch](https://github.com/microsoft/Swin-Transformer) and
-[TensorFlow](https://github.com/VcampSoldiers/Swin-Transformer-Tensorflow) implementations.
-"""
