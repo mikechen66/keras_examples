@@ -4,23 +4,61 @@ Author: [Xingyu Long](https://github.com/xingyu-long)
 Date created: 2020/07/28
 Last modified: 2020/08/27
 Description: Implementing Super-Resolution using Efficient sub-pixel model on BSDS500.
-"""
 
-"""
 ## Introduction
 
-ESPCN (Efficient Sub-Pixel CNN), proposed by [Shi, 2016](https://arxiv.org/abs/1609.05158)
-is a model that reconstructs a high-resolution version of an image given a low-resolution version.
-It leverages efficient "sub-pixel convolution" layers, which learns an array of
+ESPCN(Efficient Sub-Pixel CNN), proposed by [Shi, 2016](https://arxiv.org/abs/1609.05158)
+is a model that reconstructs a high-resolution version of an image given a low-resolution 
+version. It leverages efficient "sub-pixel convolution" layers, which learns an array of
 image upscaling filters.
 
-In this code example, we will implement the model from the paper and train it on a small dataset,
-[BSDS500](https://www2.eecs.berkeley.edu/Research/Projects/CS/vision/grouping/resources.html).
+In this code example, we will implement the model from the paper and train it on a small 
+dataset, [BSDS500]
+(https://www2.eecs.berkeley.edu/Research/Projects/CS/vision/grouping/resources.html).
+
+## Load data: BSDS500 dataset
+
+We use the built-in `keras.utils.get_file` utility to retrieve the dataset and then create 
+training and validation datasets via `image_dataset_from_directory`.
+
+## Crop and resize images
+
+Let's process image data. First, we convert our images from the RGB color space to the 
+[YUV colour space](https://en.wikipedia.org/wiki/YUV).
+
+For the input data (low-resolution images), we crop the image, retrieve the `y` channel 
+(luninance), and resize it with the `area` method (use `BICUBIC` if you use PIL). We only 
+consider the luminance channel in the YUV color space because humans are more sensitive to
+luminance change.
+
+For the target data (high-resolution images), we just crop the image and retrieve the `y` 
+channel.
+
+## Build a model
+
+Compared to the paper, we add one more layer and we use the `relu` activation function
+instead of `tanh`. It achieves better performance even though we train the model for fewer 
+epochs.
+
+## Define utility functions
+
+We need to define several utility functions to monitor our results:
+
+- `plot_results` to plot an save an image.
+- `get_lowres_image` to convert an image to its low-resolution version.
+- `upscale_image` to turn a low-resolution image to a high-resolution version reconstructed 
+   by the model.
+
+In this function, we use the `y` channel from the YUV color space as input to the model and 
+then combine the output with the other channels to obtain an RGB image.
+
+## Define callbacks to monitor training
+
+The `ESPCNCallback` object will compute and display the following weblink. This is the main 
+metric we use to evaluate super-resolution performance.
+[PSNR](https://en.wikipedia.org/wiki/Peak_signal-to-noise_ratio) metric.
 """
 
-"""
-## Setup
-"""
 
 import tensorflow as tf
 
@@ -37,21 +75,12 @@ from tensorflow.keras.preprocessing import image_dataset_from_directory
 
 from IPython.display import display
 
-"""
+
 ## Load data: BSDS500 dataset
-
-### Download dataset
-
-We use the built-in `keras.utils.get_file` utility to retrieve the dataset.
-"""
 
 dataset_url = "http://www.eecs.berkeley.edu/Research/Projects/CS/vision/grouping/BSR/BSR_bsds500.tgz"
 data_dir = keras.utils.get_file(origin=dataset_url, fname="BSR", untar=True)
 root_dir = os.path.join(data_dir, "BSDS500/data")
-
-"""
-We create training and validation datasets via `image_dataset_from_directory`.
-"""
 
 crop_size = 300
 upscale_factor = 3
@@ -78,11 +107,8 @@ valid_ds = image_dataset_from_directory(
     label_mode=None,
 )
 
-"""
-We rescale the images to take values in the range [0, 1].
-"""
 
-
+# Rescale the images to take values in the range [0, 1].
 def scaling(input_image):
     input_image = input_image / 255.0
     return input_image
@@ -92,19 +118,14 @@ def scaling(input_image):
 train_ds = train_ds.map(scaling)
 valid_ds = valid_ds.map(scaling)
 
-"""
-Let's visualize a few sample images:
-"""
 
+# Visualize a few sample images:
 for batch in train_ds.take(1):
     for img in batch:
         display(array_to_img(img))
 
-"""
-We prepare a dataset of test image paths that we will use for
-visual evaluation at the end of this example.
-"""
 
+# Prepare a dataset of test image paths for  visual evaluation.
 dataset = os.path.join(root_dir, "images")
 test_path = os.path.join(dataset, "test")
 
@@ -116,24 +137,8 @@ test_img_paths = sorted(
     ]
 )
 
-"""
+
 ## Crop and resize images
-
-Let's process image data.
-First, we convert our images from the RGB color space to the
-[YUV colour space](https://en.wikipedia.org/wiki/YUV).
-
-For the input data (low-resolution images),
-we crop the image, retrieve the `y` channel (luninance),
-and resize it with the `area` method (use `BICUBIC` if you use PIL).
-We only consider the luminance channel
-in the YUV color space because humans are more sensitive to
-luminance change.
-
-For the target data (high-resolution images), we just crop the image
-and retrieve the `y` channel.
-"""
-
 
 # Use TF Ops to process.
 def process_input(input, input_size, upscale_factor):
@@ -160,24 +165,16 @@ valid_ds = valid_ds.map(
 )
 valid_ds = valid_ds.prefetch(buffer_size=32)
 
-"""
-Let's take a look at the input and target data.
-"""
 
+# Take a look at the input and target data.
 for batch in train_ds.take(1):
     for img in batch[0]:
         display(array_to_img(img))
     for img in batch[1]:
         display(array_to_img(img))
 
-"""
+
 ## Build a model
-
-Compared to the paper, we add one more layer and we use the `relu` activation function
-instead of `tanh`.
-It achieves better performance even though we train the model for fewer epochs.
-"""
-
 
 def get_model(upscale_factor=3, channels=1):
     conv_args = {
@@ -195,19 +192,7 @@ def get_model(upscale_factor=3, channels=1):
     return keras.Model(inputs, outputs)
 
 
-"""
 ## Define utility functions
-
-We need to define several utility functions to monitor our results:
-
-- `plot_results` to plot an save an image.
-- `get_lowres_image` to convert an image to its low-resolution version.
-- `upscale_image` to turn a low-resolution image to
-a high-resolution version reconstructed by the model.
-In this function, we use the `y` channel from the YUV color space
-as input to the model and then combine the output with the
-other channels to obtain an RGB image.
-"""
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes
@@ -278,14 +263,7 @@ def upscale_image(model, img):
     return out_img
 
 
-"""
 ## Define callbacks to monitor training
-
-The `ESPCNCallback` object will compute and display
-the [PSNR](https://en.wikipedia.org/wiki/Peak_signal-to-noise_ratio) metric.
-This is the main metric we use to evaluate super-resolution performance.
-"""
-
 
 class ESPCNCallback(keras.callbacks.Callback):
     def __init__(self):
@@ -306,9 +284,8 @@ class ESPCNCallback(keras.callbacks.Callback):
         self.psnr.append(10 * math.log10(1 / logs["loss"]))
 
 
-"""
-Define `ModelCheckpoint` and `EarlyStopping` callbacks.
-"""
+
+# Define `ModelCheckpoint` and `EarlyStopping` callbacks.
 
 early_stopping_callback = keras.callbacks.EarlyStopping(monitor="loss", patience=10)
 
@@ -329,9 +306,8 @@ callbacks = [ESPCNCallback(), early_stopping_callback, model_checkpoint_callback
 loss_fn = keras.losses.MeanSquaredError()
 optimizer = keras.optimizers.Adam(learning_rate=0.001)
 
-"""
+
 ## Train the model
-"""
 
 epochs = 100
 
@@ -347,12 +323,10 @@ model.fit(
 # The model weights (that are considered the best) are loaded into the model.
 model.load_weights(checkpoint_filepath)
 
-"""
+
 ## Run model prediction and plot the results
 
-Let's compute the reconstructed version of a few images and save the results.
-"""
-
+# Compute the reconstructed version of a few images and save the results.
 total_bicubic_psnr = 0.0
 total_test_psnr = 0.0
 
