@@ -119,6 +119,14 @@ This may indicate overfitting.
 Our recall is greater than our precision, indicating that almost all pneumonia images are
 correctly identified but some normal images are falsely identified. We should aim to increase 
 our precision.
+
+## Google GCE Error Message. 
+
+All attempts to get a Google authentication bearer token failed, returning an empty token. 
+Retrieving token from files failed with "NOT_FOUND: Could not locate the credentials file.". 
+Retrieving token from GCE failed with "FAILED_PRECONDITION: Error executing an HTTP request: 
+libcurl code 6 meaning 'Couldn't resolve host name', error details: Could not resolve host: 
+metadata".
 """
 
 
