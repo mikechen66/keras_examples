@@ -3,25 +3,52 @@ Title: Image similarity estimation using a Siamese Network with a contrastive lo
 Author: Mehdi
 Date created: 2021/05/06
 Last modified: 2022/09/10
-Description: Similarity learning using a siamese network trained with a contrastive loss.
-"""
+Description: Similarity learning using a siamese network trained with a contrastive 
+loss.
 
-"""
 ## Introduction
 
-[Siamese Networks](https://en.wikipedia.org/wiki/Siamese_neural_network)
-are neural networks which share weights between two or more sister networks,
-each producing embedding vectors of its respective inputs.
+[Siamese Networks](https://en.wikipedia.org/wiki/Siamese_neural_network) are neural 
+networks which share weights between two or more sister networks, each producing 
+embedding vectors of  its respective inputs.
 
-In supervised similarity learning, the networks are then trained to maximize the
-contrast (distance) between embeddings of inputs of different classes, while minimizing the distance between
-embeddings of similar classes, resulting in embedding spaces that reflect
-the class segmentation of the training inputs.
+In supervised similarity learning, the networks are then trained to maximize them
+contrast (distance) between embeddings of inputs of different classes, while minimize
+the distance between embeddings of similar classes, resulting in embedding spaces 
+that reflect the class segmentation of the training inputs.
+
+## Create pairs of images
+
+We will train the model to differentiate between digits of different classes. For 
+example, digit `0` needs to be differentiated from the rest of the digits (`1` 
+through `9`), digit 1` - from `0` and `2` through `9`, and so on. To carry this out, 
+we will select N random  images from class A (for example, for digit `0`) and pair 
+them with N random images from  another class B (for example, for digit `1`). Then, 
+we can repeat this process for all  classes of digits (until digit `9`). Once we 
+have paired digit `0` with other digits, we repeat this process for the remaining 
+classes for the rest of the digits (from `1` until `9`). We get the following result:
+
+pairs_train.shape = (60000, 2, 28, 28)
+
+- We have 60,000 pairs
+- Each pair contains 2 images
+- Each image has shape `(28, 28)`
+
+## Define the model
+
+There are two input layers, each leading to its own network, which produces embeddings. 
+A `Lambda` layer then merges them using an [Euclidean distance] merged output is fed 
+to the final network(https://en.wikipedia.org/wiki/Euclidean_distance) and the
+
+**Example available on HuggingFace**
+| Trained Model | Demo |
+| :--: | :--: |
+| [![Generic badge](https://img.shields.io/badge/%F0%9F%A4%97%20Model-Siamese%20Network-black.svg)]
+(https://huggingface.co/keras-io/siamese-contrastive) 
+| [![Generic badge](https://img.shields.io/badge/%F0%9F%A4%97%20Spaces-Siamese%20Network-black.svg)]
+(https://huggingface.co/spaces/keras-io/siamese-contrastive) |
 """
 
-"""
-## Setup
-"""
 
 import random
 import numpy as np
@@ -30,17 +57,16 @@ from tensorflow import keras
 from tensorflow.keras import layers
 import matplotlib.pyplot as plt
 
-"""
+
 ## Hyperparameters
-"""
 
 epochs = 10
 batch_size = 16
 margin = 1  # Margin for constrastive loss.
 
-"""
+
 ## Load the MNIST dataset
-"""
+
 (x_train_val, y_train_val), (x_test, y_test) = keras.datasets.mnist.load_data()
 
 # Change the data type to a floating point format
@@ -48,9 +74,7 @@ x_train_val = x_train_val.astype("float32")
 x_test = x_test.astype("float32")
 
 
-"""
 ## Define training and validation sets
-"""
 
 # Keep 50% of train_val  in validation set
 x_train, x_val = x_train_val[:30000], x_train_val[30000:]
@@ -58,28 +82,14 @@ y_train, y_val = y_train_val[:30000], y_train_val[30000:]
 del x_train_val, y_train_val
 
 
-"""
 ## Create pairs of images
 
-We will train the model to differentiate between digits of different classes. For
-example, digit `0` needs to be differentiated from the rest of the
-digits (`1` through `9`), digit `1` - from `0` and `2` through `9`, and so on.
-To carry this out, we will select N random images from class A (for example,
-for digit `0`) and pair them with N random images from another class B
-(for example, for digit `1`). Then, we can repeat this process for all classes
-of digits (until digit `9`). Once we have paired digit `0` with other digits,
-we can repeat this process for the remaining classes for the rest of the digits
-(from `1` until `9`).
-"""
-
-
 def make_pairs(x, y):
-    """Creates a tuple containing image pairs with corresponding label.
-
+    """
+    Creates a tuple containing image pairs with corresponding label.
     Arguments:
         x: List containing images, each index in this list corresponds to one image.
         y: List containing labels, each label with datatype of `int`.
-
     Returns:
         Tuple containing two numpy arrays as (pairs_of_samples, labels),
         where pairs_of_samples' shape is (2len(x), 2,n_features_dims) and
@@ -125,46 +135,25 @@ pairs_val, labels_val = make_pairs(x_val, y_val)
 # make test pairs
 pairs_test, labels_test = make_pairs(x_test, y_test)
 
-"""
-We get:
-
-**pairs_train.shape = (60000, 2, 28, 28)**
-
-- We have 60,000 pairs
-- Each pair contains 2 images
-- Each image has shape `(28, 28)`
-"""
-
-"""
-Split the training pairs
-"""
-
+# Split the training pairs
 x_train_1 = pairs_train[:, 0]  # x_train_1.shape is (60000, 28, 28)
 x_train_2 = pairs_train[:, 1]
 
-"""
-Split the validation pairs
-"""
-
+# Split the validation pairs
 x_val_1 = pairs_val[:, 0]  # x_val_1.shape = (60000, 28, 28)
 x_val_2 = pairs_val[:, 1]
 
-"""
-Split the test pairs
-"""
 
+# Split the test pairs
 x_test_1 = pairs_test[:, 0]  # x_test_1.shape = (20000, 28, 28)
 x_test_2 = pairs_test[:, 1]
 
 
-"""
 ## Visualize pairs and their labels
-"""
-
 
 def visualize(pairs, labels, to_show=6, num_col=3, predictions=None, test=False):
-    """Creates a plot of pairs and labels, and prediction if it's test dataset.
-
+    """
+    Creates a plot of pairs and labels, and prediction if it's test dataset.
     Arguments:
         pairs: Numpy Array, of pairs to visualize, having shape
                (Number of pairs, 2, 28, 28).
@@ -179,11 +168,9 @@ def visualize(pairs, labels, to_show=6, num_col=3, predictions=None, test=False)
                      Must be passed when test=True.
         test: Boolean telling whether the dataset being visualized is
               train dataset or test dataset - (default False).
-
     Returns:
         None.
     """
-
     # Define num_row
     # If to_show % num_col != 0
     #    trim to_show,
@@ -226,41 +213,26 @@ def visualize(pairs, labels, to_show=6, num_col=3, predictions=None, test=False)
     plt.show()
 
 
-"""
-Inspect training pairs
-"""
-
+# Inspect training pairs
 visualize(pairs_train[:-1], labels_train[:-1], to_show=4, num_col=4)
 
-"""
-Inspect validation pairs
-"""
-
+# Inspect validation pairs
 visualize(pairs_val[:-1], labels_val[:-1], to_show=4, num_col=4)
 
-"""
-Inspect test pairs
-"""
 
+# Inspect test pairs
 visualize(pairs_test[:-1], labels_test[:-1], to_show=4, num_col=4)
 
-"""
-## Define the model
 
-There are two input layers, each leading to its own network, which
-produces embeddings. A `Lambda` layer then merges them using an
-[Euclidean distance](https://en.wikipedia.org/wiki/Euclidean_distance) and the
-merged output is fed to the final network.
-"""
+## Define the model
 
 # Provided two tensors t1 and t2
 # Euclidean distance = sqrt(sum(square(t1-t2)))
 def euclidean_distance(vects):
-    """Find the Euclidean distance between two vectors.
-
+    """
+    Find the Euclidean distance between two vectors.
     Arguments:
         vects: List containing two tensors of same length.
-
     Returns:
         Tensor containing euclidean distance
         (as floating point value) between vectors.
@@ -299,36 +271,29 @@ output_layer = layers.Dense(1, activation="sigmoid")(normal_layer)
 siamese = keras.Model(inputs=[input_1, input_2], outputs=output_layer)
 
 
-"""
 ## Define the constrastive Loss
-"""
-
 
 def loss(margin=1):
-    """Provides 'constrastive_loss' an enclosing scope with variable 'margin'.
-
+    """
+    Provides 'constrastive_loss' an enclosing scope with variable 'margin'.
     Arguments:
         margin: Integer, defines the baseline for distance for which pairs
                 should be classified as dissimilar. - (default is 1).
-
     Returns:
         'constrastive_loss' function with data ('margin') attached.
     """
-
     # Contrastive loss = mean( (1-true_value) * square(prediction) +
-    #                         true_value * square( max(margin-prediction, 0) ))
+    # true_value * square( max(margin-prediction, 0)))
     def contrastive_loss(y_true, y_pred):
-        """Calculates the constrastive loss.
-
+        """
+        Calculates the constrastive loss.
         Arguments:
             y_true: List of labels, each label is of type float32.
             y_pred: List of predictions of same length as of y_true,
                     each label is of type float32.
-
         Returns:
             A tensor containing constrastive loss as floating point value.
         """
-
         square_pred = tf.math.square(y_pred)
         margin_square = tf.math.square(tf.math.maximum(margin - (y_pred), 0))
         return tf.math.reduce_mean(
@@ -338,17 +303,13 @@ def loss(margin=1):
     return contrastive_loss
 
 
-"""
 ## Compile the model with the contrastive loss
-"""
 
 siamese.compile(loss=loss(margin=margin), optimizer="RMSprop", metrics=["accuracy"])
 siamese.summary()
 
 
-"""
 ## Train the model
-"""
 
 history = siamese.fit(
     [x_train_1, x_train_2],
@@ -358,20 +319,17 @@ history = siamese.fit(
     epochs=epochs,
 )
 
-"""
-## Visualize results
-"""
 
+## Visualize results
 
 def plt_metric(history, metric, title, has_valid=True):
-    """Plots the given 'metric' from 'history'.
-
+    """
+    Plot the given 'metric' from 'history'.
     Arguments:
         history: history attribute of History object returned from Model.fit.
         metric: Metric to plot, a string value present as key in 'history'.
         title: A string to be used as title of plot.
         has_valid: Boolean, true if valid data was passed to Model.fit else false.
-
     Returns:
         None.
     """
@@ -391,23 +349,14 @@ plt_metric(history=history.history, metric="accuracy", title="Model accuracy")
 # Plot the constrastive loss
 plt_metric(history=history.history, metric="loss", title="Constrastive Loss")
 
-"""
+
 ## Evaluate the model
-"""
 
 results = siamese.evaluate([x_test_1, x_test_2], labels_test)
 print("test loss, test acc:", results)
 
-"""
+
 ## Visualize the predictions
-"""
 
 predictions = siamese.predict([x_test_1, x_test_2])
 visualize(pairs_test, labels_test, to_show=3, predictions=predictions, test=True)
-
-"""
-**Example available on HuggingFace**
-| Trained Model | Demo |
-| :--: | :--: |
-| [![Generic badge](https://img.shields.io/badge/%F0%9F%A4%97%20Model-Siamese%20Network-black.svg)](https://huggingface.co/keras-io/siamese-contrastive) | [![Generic badge](https://img.shields.io/badge/%F0%9F%A4%97%20Spaces-Siamese%20Network-black.svg)](https://huggingface.co/spaces/keras-io/siamese-contrastive) |
-"""

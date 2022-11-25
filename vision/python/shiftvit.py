@@ -45,8 +45,7 @@ when these layers are called with `training=False` they behave differently. Refe
 In this section, we build the architecture proposed in [the ShiftViT paper](https://arxiv.org/abs/2201.10801).
 
 | ![ShiftViT Architecture](https://i.imgur.com/CHU40HX.png) |
-| :--: |
-| Figure 1: The entire architecutre of ShiftViT.
+| :--: || Figure 1: The entire architecutre of ShiftViT.
 [Source](https://arxiv.org/abs/2201.10801) |
 
 The architecture as shown in Fig. 1, is inspired by [Swin Transformer: Hierarchical Vision Transformer using 
@@ -65,7 +64,7 @@ We discuss the stages and the modules in detail in what follows.
 _Note_: Compared to the [official implementation](https://github.com/microsoft/SPACH/blob/main/models/shiftvit.py)
 we restructure some key components to better fit the Keras API.
 
-The ShiftViT Block
+# The ShiftViT Block
 
 | ![ShiftViT block](https://i.imgur.com/IDe35vo.gif) |
 | :--: |
@@ -77,23 +76,23 @@ Each stage in the ShiftViT architecture comprises of a Shift Block as shown in F
 | :--: |
 | Figure 3: The Shift ViT Block. [Source](https://arxiv.org/abs/2201.10801) |
 
-The Shift Block as shown in Fig. 3, comprises of the following:
+The Shift Block as shown in Fig.3, comprises of the following:
 
 1. Shift Operation
 2. Linear Normalization
 3. MLP Layer
 
-The MLP block
+# The MLP block
 
 The MLP block is intended to be a stack of densely-connected layers.s
 
-The DropPath layer
+# The DropPath layer
 
 Stochastic depth is a regularization technique that randomly drops a set of layers. During inference, the 
 layers are kept as they are. It is very similar to Dropout, but it operates on a block of layers rather
 than on individual nodes present inside a layer.
 
-#### Block
+## Block
 
 The most important operation in this paper is the **shift opperation**. In this section, we describe the 
 shift operation and compare it with its original implementation provided by the authors.
@@ -126,7 +125,7 @@ training process. This is why we have resorted to the following procedure:
 
 The entire procedure is explained in the Fig. 4.
 
-### The ShiftViT blocks
+# The ShiftViT blocks
 
 | ![Shift Blokcs](https://i.imgur.com/FKy5NnD.png) |
 | :--: |
@@ -138,7 +137,7 @@ number of stacked ShiftViT block (as built in the earlier section).
 Shift blocks are followed by a PatchMerging layer that scales down feature inputs. The PatchMerging layer 
 helps in the pyramidal structure of the model.
 
-#### The PatchMerging layer
+# The PatchMerging layer
 
 This layer merges the two adjacent tokens. This layer helps in scaling the features down spatially and 
 increasing the features up channel wise. We use a Conv2D layer to merge the patches.
@@ -325,7 +324,7 @@ class DropPath(layers.Layer):
         return x
 
 
-# Block
+## Block
 
 class ShiftViTBlock(layers.Layer):
     """
@@ -431,7 +430,6 @@ class ShiftViTBlock(layers.Layer):
         shortcut = x
         x = shortcut + self.drop_path(self.mlp(self.layer_norm(x)), training=training)
         return x
-
 
 
 # The PatchMerging layer
@@ -806,6 +804,7 @@ history = model.fit(
         )
     ],
 )
+
 
 # Evaluate the model with the test dataset.
 print("TESTING")
