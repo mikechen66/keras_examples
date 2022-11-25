@@ -4,48 +4,130 @@ Author: [Sayak Paul](https://twitter.com/RisingSayak)
 Date created: 2021/03/19
 Last modified: 2021/03/20
 Description: Implementation of a self-supervised learning method for computer vision.
-"""
-"""
-Self-supervised learning (SSL) is an interesting branch of study in the field of
-representation learning. SSL systems try to formulate a supervised signal from a corpus
-of unlabeled data points.  An example is we train a deep neural network to predict the
-next word from a given set of words. In literature, these tasks are known as *pretext
-tasks* or *auxiliary tasks*. If we [train such a network](https://arxiv.org/abs/1801.06146) on a huge dataset (such as
-the [Wikipedia text corpus](https://www.corpusdata.org/wikipedia.asp)) it learns very effective
-representations that transfer well to downstream tasks. Language models like
-[BERT](https://arxiv.org/abs/1810.04805), [GPT-3](https://arxiv.org/abs/2005.14165),
-[ELMo](https://allennlp.org/elmo) all benefit from this.
 
-Much like the language models we can train computer vision models using similar
-approaches. To make things work in computer vision, we need to formulate the learning
-tasks such that the underlying model (a deep neural network) is able to make sense of the
-semantic information present in vision data. One such task is to a model to _contrast_
-between two different versions of the same image. The hope is that in this way the model
-will have learn representations where the similar images are grouped as together possible
+Self-supervised learning(SSL) is an interesting branch  in the field of representation 
+learning. SSL systems try to formulate a supervised signal from a corpus of unlabeled 
+data points.  An example is we train a deep neural network to predict the next word 
+from a given set of words. In literature, these tasks are known as *pretext tasks* or 
+*auxiliary tasks*. If we [train such a network](https://arxiv.org/abs/1801.06146) on 
+a huge dataset([Wikipedia text corpus](https://www.corpusdata.org/wikipedia.asp)) it 
+learns very effective representations that transfer well to downstream tasks. The 
+following Language models all benefit from this.
+[BERT](https://arxiv.org/abs/1810.04805);
+[GPT-3](https://arxiv.org/abs/2005.14165);
+[ELMo](https://allennlp.org/elmo).
+
+Like the language models we can train computer vision models using similar approaches. 
+To make things work in computer vision, we need to formulate the learning tasks such 
+that the underlying model (a deep neural network) is able to make sense of the semantic 
+information present in vision data. One such task is to a model to _contrast_ between 
+two different versions of the same image. The hope is that in this way the model will 
+have learn representations where the similar images are grouped as together possible
 while the dissimilar images are further away.
 
 In this example, we will be implementing one such system called **SimSiam** proposed in
 [Exploring Simple Siamese Representation Learning](https://arxiv.org/abs/2011.10566). It
 is implemented as the following:
 
-1. We create two different versions of the same dataset with a stochastic data
-augmentation pipeline. Note that the random initialization seed needs to be the same
-during create these versions.
-2. We take a ResNet without any classification head (**backbone**) and we add a shallow
+1.We create two different versions of the same dataset with a stochastic data augment 
+pipeline. Note the random initialization seed needs to be the same during create these 
+versions.
+2.We take a ResNet without any classification head (**backbone**) and we add a shallow
 fully-connected network (**projection head**) on top of it. Collectively, this is known
 as the **encoder**.
-3. We pass the output of the encoder through a **predictor** which is again a shallow
-fully-connected network having an
-[AutoEncoder](https://en.wikipedia.org/wiki/Autoencoder) like structure.
-4. We then train our encoder to maximize the cosine similarity between the two different
+3.We pass the output of the encoder through a **predictor** which is again a shallow
+fully-connected network having the following structure. 
+[AutoEncoder](https://en.wikipedia.org/wiki/Autoencoder)
+4.We train our encoder to maximize the cosine similarity between the two different
 versions of our dataset.
 
 This example requires TensorFlow 2.4 or higher.
+
+## Defining our data augmentation pipeline
+
+As studied in [SimCLR](https://arxiv.org/abs/2002.05709) having the right data.augment 
+pipeline is critical for SSL systems to work effectively in computer vision. Two 
+particular augment transforms that seem to matter the most are: 1.) Random resized crops 
+and 2.) Color distortions. Most of the other SSL systems for computer vision (such as 
+[BYOL](https://arxiv.org/abs/2006.07733), [MoCoV2](https://arxiv.org/abs/2003.04297), 
+[SwAV](https://arxiv.org/abs/2006.09882), etc.) include these in their training pipelines.
+
+Please note an augmentation pipeline is generally dependent on various properties of 
+the dataset we are dealing with. For example, if images in the dataset are heavily 
+object-centric then taking random crops with a very high probability may hurt the
+training performance.
+
+Let's now apply our augmentation pipeline to our dataset and visualize a few outputs.
+
+## Convert the data into TensorFlow `Dataset` objects
+
+Notice that the images in `samples_images_one` and `sample_images_two` are essentially
+the same but are augmented differently.
+
+## Defining the encoder and the predictor
+
+We use an implementation of ResNet20 that is specifically configured for the CIFAR10
+dataset. The code is taken from the [keras-idiomatic-programmer]
+(https://github.com/GoogleCloudPlatform/keras-idiomatic-programmer/blob/master/zoo/resnet/resnet_cifar10_v2.py) repository. 
+
+The hyperparameters of the architectures have been referred from Section 3 and Appendix
+A of [the original paper](https://arxiv.org/abs/2011.10566).
+
+$ wget -q https://git.io/JYx2x -O resnet_cifar10_v2.py
+
+## Defining the (pre-)training loop
+
+One of the main reasons behind training networks with these kinds of approaches is to
+utilize the learned representations for downstream tasks like classification. This is 
+why this particular training phase is also referred to as _pre-training_.
+
+We start by defining the loss function.
+
+## Pre-training our networks
+
+In the interest of this example, we will train the model for only 5 epochs. In reality,
+this should at least be 100 epochs.
+
+If your solution gets very close to -1 (minimum value of our loss) very quickly with a
+different dataset and a different backbone architecture that is likely because of
+*representation collapse*. It is a phenomenon where the encoder yields similar output for
+all the images. In that case additional hyperparameter tuning is required especially in
+the following areas:
+
+*Strength of the color distortions and their probabilities.
+*Learning rate and its schedule.
+*Architecture of both the backbone and their projection head.
+
+## Evaluating our SSL method
+
+The most popularly used method to evaluate a SSL method in computer vision (or any other
+pre-training method as such) is to learn a linear classifier on the frozen features of
+the trained backbone model (in this case it is ResNet20) and evaluate the classifier on
+unseen images. Other methods include
+[fine-tuning](https://keras.io/guides/transfer_learning/) on the source dataset or even a
+target dataset with 5% or 10% labels present. Practically, we can use the backbone model
+for any downstream task such as semantic segmentation, object detection, and so on where
+the backbone models are usually pre-trained with *pure supervised learning*.
+
+## Notes
+
+*More data and longer pre-training schedule benefit SSL in general.
+*SSL is particularly very helpful when you do not have access to very limited *labeled*
+training data but you can manage to build a large corpus of unlabeled data. Recently,
+using an SSL method called [SwAV](https://arxiv.org/abs/2006.09882), a group of
+researchers at Facebook trained a [RegNet](https://arxiv.org/abs/2006.09882) on 2 Billion
+images. They were able to achieve downstream performance very close to those achieved by
+pure supervised pre-training. For some downstream tasks, their method even outperformed
+the supervised counterparts. You can check out [their
+paper](https://arxiv.org/pdf/2103.01988.pdf) to know the details.
+*If you are interested to understand why contrastive SSL helps networks learn meaningful
+representations, you can check out the following resources:
+*[Self-supervised learning: The dark matter of
+intelligence](https://ai.facebook.com/blog/self-supervised-learning-the-dark-matter-of-intelligence/)
+*[Understanding self-supervised learning using controlled datasets with known
+structure](https://sslneuips20.github.io/files/CameraReadys%203-77/64/CameraReady/Understanding_self_supervised_learning.pdf)
 """
 
-"""
-## Setup
-"""
 
 from tensorflow.keras import layers
 from tensorflow.keras import regularizers
@@ -54,9 +136,8 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
 
-"""
+
 ## Define hyperparameters
-"""
 
 AUTO = tf.data.AUTOTUNE
 BATCH_SIZE = 128
@@ -68,26 +149,15 @@ PROJECT_DIM = 2048
 LATENT_DIM = 512
 WEIGHT_DECAY = 0.0005
 
-"""
+
 ## Load the CIFAR-10 dataset
-"""
 
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
 print(f"Total training examples: {len(x_train)}")
 print(f"Total test examples: {len(x_test)}")
 
-"""
+
 ## Defining our data augmentation pipeline
-
-As studied in [SimCLR](https://arxiv.org/abs/2002.05709) having the right data
-augmentation pipeline is critical for SSL systems to work effectively in computer vision.
-Two particular augmentation transforms that seem to matter the most are: 1.) Random
-resized crops and 2.) Color distortions. Most of the other SSL systems for computer
-vision (such as [BYOL](https://arxiv.org/abs/2006.07733),
-[MoCoV2](https://arxiv.org/abs/2003.04297), [SwAV](https://arxiv.org/abs/2006.09882),
-etc.) include these in their training pipelines.
-"""
-
 
 def flip_random_crop(image):
     # With random crops we also apply horizontal flipping.
@@ -134,21 +204,9 @@ def custom_augment(image):
     return image
 
 
-"""
-It should be noted that an augmentation pipeline is generally dependent on various
-properties of the dataset we are dealing with. For example, if images in the dataset are
-heavily object-centric then taking random crops with a very high probability may hurt the
-training performance.
-
-Let's now apply our augmentation pipeline to our dataset and visualize a few outputs.
-"""
-
-"""
 ## Convert the data into TensorFlow `Dataset` objects
 
-Here we create two different versions of our dataset *without* any ground-truth labels.
-"""
-
+# Create two different versions of our dataset *without* any ground-truth labels.
 ssl_ds_one = tf.data.Dataset.from_tensor_slices(x_train)
 ssl_ds_one = (
     ssl_ds_one.shuffle(1024, seed=SEED)
@@ -187,24 +245,8 @@ for n in range(25):
     plt.axis("off")
 plt.show()
 
-"""
-Notice that the images in `samples_images_one` and `sample_images_two` are essentially
-the same but are augmented differently.
-"""
 
-"""
-## Defining the encoder and the predictor
-
-We use an implementation of ResNet20 that is specifically configured for the CIFAR10
-dataset. The code is taken from the
-[keras-idiomatic-programmer](https://github.com/GoogleCloudPlatform/keras-idiomatic-programmer/blob/master/zoo/resnet/resnet_cifar10_v2.py) repository. The hyperparameters of
-these architectures have been referred from Section 3 and Appendix A of [the original
-paper](https://arxiv.org/abs/2011.10566).
-"""
-
-"""shell
-wget -q https://git.io/JYx2x -O resnet_cifar10_v2.py
-"""
+## Define the encoder and the predictor
 
 import resnet_cifar10_v2
 
@@ -253,16 +295,7 @@ def get_predictor():
     return model
 
 
-"""
-## Defining the (pre-)training loop
-
-One of the main reasons behind training networks with these kinds of approaches is to
-utilize the learned representations for downstream tasks like classification. This is why
-this particular training phase is also referred to as _pre-training_.
-
-We start by defining the loss function.
-"""
-
+## Define the (pre-)training loop
 
 def compute_loss(p, z):
     # The authors of SimSiam emphasize the impact of
@@ -276,12 +309,8 @@ def compute_loss(p, z):
     return -tf.reduce_mean(tf.reduce_sum((p * z), axis=1))
 
 
-"""
-We then define our training loop by overriding the `train_step()` function of the
-`tf.keras.Model` class.
-"""
-
-
+# Define the training loop by overriding the `train_step()` function of 
+# the `tf.keras.Model` class.
 class SimSiam(tf.keras.Model):
     def __init__(self, encoder, predictor):
         super(SimSiam, self).__init__()
@@ -318,12 +347,7 @@ class SimSiam(tf.keras.Model):
         return {"loss": self.loss_tracker.result()}
 
 
-"""
 ## Pre-training our networks
-
-In the interest of this example, we will train the model for only 5 epochs. In reality,
-this should at least be 100 epochs.
-"""
 
 # Create a cosine decay learning scheduler.
 num_training_samples = len(x_train)
@@ -348,31 +372,8 @@ plt.grid()
 plt.title("Negative Cosine Similairty")
 plt.show()
 
-"""
-If your solution gets very close to -1 (minimum value of our loss) very quickly with a
-different dataset and a different backbone architecture that is likely because of
-*representation collapse*. It is a phenomenon where the encoder yields similar output for
-all the images. In that case additional hyperparameter tuning is required especially in
-the following areas:
 
-* Strength of the color distortions and their probabilities.
-* Learning rate and its schedule.
-* Architecture of both the backbone and their projection head.
-
-"""
-
-"""
 ## Evaluating our SSL method
-
-The most popularly used method to evaluate a SSL method in computer vision (or any other
-pre-training method as such) is to learn a linear classifier on the frozen features of
-the trained backbone model (in this case it is ResNet20) and evaluate the classifier on
-unseen images. Other methods include
-[fine-tuning](https://keras.io/guides/transfer_learning/) on the source dataset or even a
-target dataset with 5% or 10% labels present. Practically, we can use the backbone model
-for any downstream task such as semantic segmentation, object detection, and so on where
-the backbone models are usually pre-trained with *pure supervised learning*.
-"""
 
 # We first create labeled `Dataset` objects.
 train_ds = tf.data.Dataset.from_tensor_slices((x_train, y_train))
@@ -394,7 +395,7 @@ backbone = tf.keras.Model(
     simsiam.encoder.input, simsiam.encoder.get_layer("backbone_pool").output
 )
 
-# We then create our linear classifier and train it.
+# Create our linear classifier and train it.
 backbone.trainable = False
 inputs = layers.Input((CROP_TO, CROP_TO, 3))
 x = backbone(inputs, training=False)
@@ -412,24 +413,3 @@ history = linear_model.fit(
 )
 _, test_acc = linear_model.evaluate(test_ds)
 print("Test accuracy: {:.2f}%".format(test_acc * 100))
-
-"""
-
-## Notes
-* More data and longer pre-training schedule benefit SSL in general.
-* SSL is particularly very helpful when you do not have access to very limited *labeled*
-training data but you can manage to build a large corpus of unlabeled data. Recently,
-using an SSL method called [SwAV](https://arxiv.org/abs/2006.09882), a group of
-researchers at Facebook trained a [RegNet](https://arxiv.org/abs/2006.09882) on 2 Billion
-images. They were able to achieve downstream performance very close to those achieved by
-pure supervised pre-training. For some downstream tasks, their method even outperformed
-the supervised counterparts. You can check out [their
-paper](https://arxiv.org/pdf/2103.01988.pdf) to know the details.
-* If you are interested to understand why contrastive SSL helps networks learn meaningful
-representations, you can check out the following resources:
-   * [Self-supervised learning: The dark matter of
-intelligence](https://ai.facebook.com/blog/self-supervised-learning-the-dark-matter-of-intelligence/)
-   * [Understanding self-supervised learning using controlled datasets with known
-structure](https://sslneuips20.github.io/files/CameraReadys%203-77/64/CameraReady/Understanding_self_supervised_learning.pdf)
-
-"""
