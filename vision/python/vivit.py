@@ -1,44 +1,113 @@
 """
 Title: Video Vision Transformer
-Author: [Aritra Roy Gosthipaty](https://twitter.com/ariG23498), [Ayush Thakur](https://twitter.com/ayushthakur0) (equal contribution)
+Author: [Aritra Roy Gosthipaty](https://twitter.com/ariG23498), [Ayush Thakur]
+(https://twitter.com/ayushthakur0) (equal contribution)
 Date created: 2022/01/12
 Last modified:  2022/01/12
 Description: A Transformer-based architecture for video classification.
-"""
-"""
+
 ## Introduction
 
-Videos are sequences of images. Let's assume you have an image
-representation model (CNN, ViT, etc.) and a sequence model
-(RNN, LSTM, etc.) at hand. We ask you to tweak the model for video
-classification. The simplest approach would be to apply the image
-model to individual frames, use the sequence model to learn
-sequences of image features, then apply a classification head on
-the learned sequence representation.
+Videos are sequences of images. Let's assume you have an image epresentation model 
+(CNN, ViT, etc.) and a sequence model
+(RNN, LSTM, etc.) at hand. We ask you to tweak the model for video classification. 
+The simplest approach would be to apply the image model to individual frames, use 
+the sequence model to learn sequences of image features, apply a classification 
+head on the learned sequence representation.
+
 The Keras example
-[Video Classification with a CNN-RNN Architecture](https://keras.io/examples/vision/video_classification/)
-explains this approach in detail. Alernatively, you can also
-build a hybrid Transformer-based model for video classification as shown in the Keras example
-[Video Classification with Transformers](https://keras.io/examples/vision/video_transformers/).
+[Video Classification with a CNN-RNN Architecture] explains this approach in detail. 
+Alernatively, you can build a hybrid Transformer-based model for video classification 
+as shown in the Keras example[[Video Classification with Transformers]
 
-In this example, we minimally implement
-[ViViT: A Video Vision Transformer](https://arxiv.org/abs/2103.15691)
-by Arnab et al., a **pure Transformer-based** model
-for video classification. The authors propose a novel embedding scheme
-and a number of Transformer variants to model video clips. We implement
-the embedding scheme and one of the variants of the Transformer
-architecture, for simplicity.
+(https://keras.io/examples/vision/video_classification/)
+(https://keras.io/examples/vision/video_transformers/).
 
-This example requires TensorFlow 2.6 or higher, and the `medmnist`
-package, which can be installed by running the code cell below.
-"""
+In this example, we minimally implement [ViViT: A Video Vision Transformer]
+(https://arxiv.org/abs/2103.15691) by Arnab et al., a pure Transformer-based model
+for video classification. The authors propose a novel embedding scheme and a number 
+of Transformer variants to model video clips. We implement
+the embedding scheme and one of the variants of the Transformer architecture, for 
+simplicity.
 
-"""shell
-pip install -qq medmnist
-"""
+This example requires TensorFlow 2.6 or higher, and the `medmnist` package, which 
+can be installed by running the code cell below.
 
-"""
-## Imports
+$ pip install -qq medmnist
+
+## Hyperparameters
+
+The hyperparameters are chosen via hyperparameter search. You can learn more about 
+the process in the "conclusion" section.
+
+## Dataset
+
+For our example we use the
+[MedMNIST v2: A Large-Scale Lightweight Benchmark for 2D and 3D Biomedical Image 
+Classification](https://medmnist.com/) dataset. The videos are lightweight and easy 
+to train on.
+
+## Tubelet Embedding
+
+In ViTs, an image is divided into patches, which are then spatially flattened, a 
+process known as tokenization. For a video, one can repeat this process for individual 
+frames. **Uniform frame sampling** as suggested by the authors is a tokenization 
+scheme in which we sample frames from the video clip and perform simple ViT tokenization.
+
+| ![uniform frame sampling](https://i.imgur.com/aaPyLPX.png) |
+| :--: |
+| Uniform Frame Sampling [Source](https://arxiv.org/abs/2103.15691) |
+
+Tubelet Embedding is different in terms of capturing temporal information from the video.
+First, we extract volumes from the video -- these volumes contain patches of the frame 
+and the temporal information as well. The volumes are flattened to build video tokens.
+
+| ![tubelet embedding](https://i.imgur.com/9G7QTfV.png) |
+| :--: |
+| Tubelet Embedding [Source](https://arxiv.org/abs/2103.15691) |
+
+## Video Vision Transformer
+
+The authors suggest 4 variants of Vision Transformer:
+
+- Spatio-temporal attention
+- Factorized encoder
+- Factorized self-attention
+- Factorized dot-product attention
+
+In this example, we will implement the Spatio-temporal attention model for simplicity. 
+The following code snippet is heavily inspired from [Image classification with Vision 
+Transformer](https://keras.io/examples/vision/image_classification_with_vision_transformer/).
+One can also refer to the [official repository of ViViT] which contains all the variants, 
+implemented in JAX.
+(https://github.com/google-research/scenic/tree/main/scenic/projects/vivit)
+
+
+## Final thoughts
+
+With a vanilla implementation, we achieve ~79-80% Top-1 accuracy on the test dataset.
+
+The hyperparameters used in this tutorial were finalized by running a hyperparameter 
+search using
+[W&B Sweeps](https://docs.wandb.ai/guides/sweeps).
+You can find out our sweeps result
+[here](https://wandb.ai/minimal-implementations/vivit/sweeps/66fp0lhz)
+and our quick analysis of the results
+[here](https://wandb.ai/minimal-implementations/vivit/reports/Hyperparameter-Tuning-Analysis--VmlldzoxNDEwNzcx).
+
+For further improvement, you could look into the following:
+
+- Using data augmentation for videos.
+- Using a better regularization scheme for training.
+- Apply different variants of the transformer model as in the paper.
+
+We would like to thank [Anurag Arnab](https://anuragarnab.github.io/)
+(first author of ViViT) for helpful discussion. We are grateful to
+[Weights and Biases](https://wandb.ai/site) program for helping with
+GPU credits.
+
+You can use the trained model hosted on [Hugging Face Hub](https://huggingface.co/keras-io/video-vision-transformer)
+and try the demo on [Hugging Face Spaces](https://huggingface.co/spaces/keras-io/video-vision-transformer-CT).
 """
 
 import os
@@ -56,12 +125,8 @@ SEED = 42
 os.environ["TF_CUDNN_DETERMINISTIC"] = "1"
 keras.utils.set_random_seed(SEED)
 
-"""
-## Hyperparameters
 
-The hyperparameters are chosen via hyperparameter
-search. You can learn more about the process in the "conclusion" section.
-"""
+## Hyperparameters
 
 # DATA
 DATASET_NAME = "organmnist3d"
@@ -87,18 +152,12 @@ PROJECTION_DIM = 128
 NUM_HEADS = 8
 NUM_LAYERS = 8
 
-"""
+
 ## Dataset
 
-For our example we use the
-[MedMNIST v2: A Large-Scale Lightweight Benchmark for 2D and 3D Biomedical Image Classification](https://medmnist.com/)
-dataset. The videos are lightweight and easy to train on.
-"""
-
-
 def download_and_prepare_dataset(data_info: dict):
-    """Utility function to download the dataset.
-
+    """
+    Utility function to download the dataset.
     Arguments:
         data_info (dict): Dataset metadata.
     """
@@ -131,10 +190,8 @@ prepared_dataset = download_and_prepare_dataset(info)
 (valid_videos, valid_labels) = prepared_dataset[1]
 (test_videos, test_labels) = prepared_dataset[2]
 
-"""
-### `tf.data` pipeline
-"""
 
+# `tf.data` pipeline
 
 @tf.function
 def preprocess(frames: tf.Tensor, label: tf.Tensor):
@@ -175,30 +232,8 @@ trainloader = prepare_dataloader(train_videos, train_labels, "train")
 validloader = prepare_dataloader(valid_videos, valid_labels, "valid")
 testloader = prepare_dataloader(test_videos, test_labels, "test")
 
-"""
+
 ## Tubelet Embedding
-
-In ViTs, an image is divided into patches, which are then spatially
-flattened, a process known as tokenization. For a video, one can
-repeat this process for individual frames. **Uniform frame sampling**
-as suggested by the authors is a tokenization scheme in which we
-sample frames from the video clip and perform simple ViT tokenization.
-
-| ![uniform frame sampling](https://i.imgur.com/aaPyLPX.png) |
-| :--: |
-| Uniform Frame Sampling [Source](https://arxiv.org/abs/2103.15691) |
-
-**Tubelet Embedding** is different in terms of capturing temporal
-information from the video.
-First, we extract volumes from the video -- these volumes contain
-patches of the frame and the temporal information as well. The volumes
-are then flattened to build video tokens.
-
-| ![tubelet embedding](https://i.imgur.com/9G7QTfV.png) |
-| :--: |
-| Tubelet Embedding [Source](https://arxiv.org/abs/2103.15691) |
-"""
-
 
 class TubeletEmbedding(layers.Layer):
     def __init__(self, embed_dim, patch_size, **kwargs):
@@ -217,13 +252,9 @@ class TubeletEmbedding(layers.Layer):
         return flattened_patches
 
 
-"""
 ## Positional Embedding
 
-This layer adds positional information to the encoded video tokens.
-"""
-
-
+# Add positional information to the encoded video tokens.
 class PositionalEncoder(layers.Layer):
     def __init__(self, embed_dim, **kwargs):
         super().__init__(**kwargs)
@@ -243,24 +274,7 @@ class PositionalEncoder(layers.Layer):
         return encoded_tokens
 
 
-"""
 ## Video Vision Transformer
-
-The authors suggest 4 variants of Vision Transformer:
-
-- Spatio-temporal attention
-- Factorized encoder
-- Factorized self-attention
-- Factorized dot-product attention
-
-In this example, we will implement the **Spatio-temporal attention**
-model for simplicity. The following code snippet is heavily inspired from
-[Image classification with Vision Transformer](https://keras.io/examples/vision/image_classification_with_vision_transformer/).
-One can also refer to the
-[official repository of ViViT](https://github.com/google-research/scenic/tree/main/scenic/projects/vivit)
-which contains all the variants, implemented in JAX.
-"""
-
 
 def create_vivit_classifier(
     tubelet_embedder,
@@ -314,10 +328,7 @@ def create_vivit_classifier(
     return model
 
 
-"""
 ## Train
-"""
-
 
 def run_experiment():
     # Initialize model
@@ -352,9 +363,8 @@ def run_experiment():
 
 model = run_experiment()
 
-"""
+
 ## Inference
-"""
 
 NUM_SAMPLES_VIZ = 25
 testsamples, labels = next(iter(testloader))
@@ -379,8 +389,8 @@ for i, (testsample, label) in enumerate(zip(testsamples, labels)):
 
 
 def make_box_for_grid(image_widget, fit):
-    """Make a VBox to hold caption/image for demonstrating option_fit values.
-
+    """
+    Make a VBox to hold caption/image for demonstrating option_fit values.
     Source: https://ipywidgets.readthedocs.io/en/latest/examples/Widget%20Styling.html
     """
     # Make the caption
@@ -414,32 +424,3 @@ for i in range(NUM_SAMPLES_VIZ):
 ipywidgets.widgets.GridBox(
     boxes, layout=ipywidgets.widgets.Layout(grid_template_columns="repeat(5, 200px)")
 )
-
-"""
-## Final thoughts
-
-With a vanilla implementation, we achieve ~79-80% Top-1 accuracy on the
-test dataset.
-
-The hyperparameters used in this tutorial were finalized by running a
-hyperparameter search using
-[W&B Sweeps](https://docs.wandb.ai/guides/sweeps).
-You can find out our sweeps result
-[here](https://wandb.ai/minimal-implementations/vivit/sweeps/66fp0lhz)
-and our quick analysis of the results
-[here](https://wandb.ai/minimal-implementations/vivit/reports/Hyperparameter-Tuning-Analysis--VmlldzoxNDEwNzcx).
-
-For further improvement, you could look into the following:
-
-- Using data augmentation for videos.
-- Using a better regularization scheme for training.
-- Apply different variants of the transformer model as in the paper.
-
-We would like to thank [Anurag Arnab](https://anuragarnab.github.io/)
-(first author of ViViT) for helpful discussion. We are grateful to
-[Weights and Biases](https://wandb.ai/site) program for helping with
-GPU credits.
-
-You can use the trained model hosted on [Hugging Face Hub](https://huggingface.co/keras-io/video-vision-transformer)
-and try the demo on [Hugging Face Spaces](https://huggingface.co/spaces/keras-io/video-vision-transformer-CT).
-"""
