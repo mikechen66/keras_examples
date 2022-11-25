@@ -4,22 +4,51 @@ Author: [fchollet](https://twitter.com/fchollet)
 Date created: 2020/05/29
 Last modified: 2020/05/29
 Description: Displaying the visual patterns that convnet filters respond to.
-"""
-"""
+
 ## Introduction
 
-In this example, we look into what sort of visual patterns image classification models
+In this example, we look into what sort of visual patterns image classification models 
 learn. We'll be using the `ResNet50V2` model, trained on the ImageNet dataset.
 
 Our process is simple: we will create input images that maximize the activation of
 specific filters in a target layer (picked somewhere in the middle of the model: layer
-`conv3_block4_out`). Such images represent a visualization of the
-pattern that the filter responds to.
+`conv3_block4_out`). Such images represent a visualization of the pattern that the 
+filter responds to.
+
+## Set up the gradient ascent process
+
+The "loss" we will maximize is simply the mean of the activation of a specific filter 
+in our target layer. To avoid border effects, we exclude border pixels.
+
+Our gradient ascent function simply computes the gradients of the loss above with regard 
+to the input image, and update the update image so as to move it towards a state that 
+will activate the target filter more strongly.
+
+## Set up the end-to-end filter visualization loop
+
+Our process is as follow:
+
+- Start from a random image that is close to "all gray" (i.e. visually netural)
+- Repeatedly apply the gradient ascent step function defined above
+- Convert the resulting input image back to a displayable form, by normalizing it, center-
+  cropping it, and restricting it to the [0, 255] range.
+
+## Visualize the first 64 filters in the target layer
+
+Now, let's make a 8x8 grid of the first 64 filters in the target layer to get of feel for 
+the range of different visual patterns that the model has learned.
+
+Image classification models see the world by decomposing their inputs over a "vector
+basis" of texture filters such as these. See also the following link for analysis and 
+interpretation. [this old blog post]
+(https://blog.keras.io/how-convolutional-neural-networks-see-the-world.html)
+
+Example available on HuggingFace.
+
+[![Generic badge](https://img.shields.io/badge/🤗%20Spaces-What%20Convnets%20Learn-black.svg)]
+(https://huggingface.co/spaces/keras-io/what-convnets-learn)
 """
 
-"""
-## Setup
-"""
 
 import numpy as np
 import tensorflow as tf
@@ -32,9 +61,8 @@ img_height = 180
 # See `model.summary()` for list of layer names, if you want to change this.
 layer_name = "conv3_block4_out"
 
-"""
+
 ## Build a feature extraction model
-"""
 
 # Build a ResNet50V2 model loaded with pre-trained ImageNet weights
 model = keras.applications.ResNet50V2(weights="imagenet", include_top=False)
@@ -43,26 +71,14 @@ model = keras.applications.ResNet50V2(weights="imagenet", include_top=False)
 layer = model.get_layer(name=layer_name)
 feature_extractor = keras.Model(inputs=model.inputs, outputs=layer.output)
 
-"""
+
 ## Set up the gradient ascent process
-
-The "loss" we will maximize is simply the mean of the activation of a specific filter in
-our target layer. To avoid border effects, we exclude border pixels.
-"""
-
 
 def compute_loss(input_image, filter_index):
     activation = feature_extractor(input_image)
     # We avoid border artifacts by only involving non-border pixels in the loss.
     filter_activation = activation[:, 2:-2, 2:-2, filter_index]
     return tf.reduce_mean(filter_activation)
-
-
-"""
-Our gradient ascent function simply computes the gradients of the loss above
-with regard to the input image, and update the update image so as to move it
-towards a state that will activate the target filter more strongly.
-"""
 
 
 @tf.function
@@ -78,17 +94,7 @@ def gradient_ascent_step(img, filter_index, learning_rate):
     return loss, img
 
 
-"""
 ## Set up the end-to-end filter visualization loop
-
-Our process is as follow:
-
-- Start from a random image that is close to "all gray" (i.e. visually netural)
-- Repeatedly apply the gradient ascent step function defined above
-- Convert the resulting input image back to a displayable form, by normalizing it,
-center-cropping it, and restricting it to the [0, 255] range.
-"""
-
 
 def initialize_image():
     # We start from a gray image with some random noise
@@ -130,29 +136,20 @@ def deprocess_image(img):
     return img
 
 
-"""
-Let's try it out with filter 0 in the target layer:
-"""
+# Try it out with filter 0 in the target layer:
 
 from IPython.display import Image, display
 
 loss, img = visualize_filter(0)
 keras.preprocessing.image.save_img("0.png", img)
 
-"""
-This is what an input that maximizes the response of filter 0 in the target layer would
-look like:
-"""
 
+# This is what an input that maximizes the response of filter 0 in 
+# the target layer would look like:
 display(Image("0.png"))
 
-"""
-## Visualize the first 64 filters in the target layer
 
-Now, let's make a 8x8 grid of the first 64 filters
-in the target layer to get of feel for the range
-of different visual patterns that the model has learned.
-"""
+## Visualize the first 64 filters in the target layer
 
 # Compute image inputs that maximize per-filter activations
 # for the first 64 filters of our target layer
@@ -187,16 +184,3 @@ keras.preprocessing.image.save_img("stiched_filters.png", stitched_filters)
 from IPython.display import Image, display
 
 display(Image("stiched_filters.png"))
-
-"""
-Image classification models see the world by decomposing their inputs over a "vector
-basis" of texture filters such as these.
-
-See also
-[this old blog post](https://blog.keras.io/how-convolutional-neural-networks-see-the-world.html)
-for analysis and interpretation.
-
-Example available on HuggingFace.
-
-[![Generic badge](https://img.shields.io/badge/🤗%20Spaces-What%20Convnets%20Learn-black.svg)](https://huggingface.co/spaces/keras-io/what-convnets-learn)
-"""
