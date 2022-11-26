@@ -7,7 +7,7 @@ Description: How to train a deep convolutional autoencoder for image denoising.
 
 ## Introduction
 
-This example demonstrates how to implement a deep convolutional autoencoder for image 
+The example demonstrates how to implement a deep convolutional autoencoder for image 
 denoising, mapping noisy digits images from the MNIST dataset to clean digits images. 
 This implementation is based on an original blog post titled [Building Autoencoders 
 in Keras](https://blog.keras.io/building-autoencoders-in-keras.html) by [François 
@@ -15,8 +15,8 @@ Chollet](https://twitter.com/fchollet).
 
 ## Prepare the data
 
-Since we only need images from the dataset to encode and decode, we
-won't use the labels.
+Since we only need images from the dataset to encode and decode, we won't use the 
+labels.
 
 ## Build the autoencoder
 
@@ -24,15 +24,13 @@ We are going to use the Functional API to build our convolutional autoencoder. N
 can train our autoencoder using `train_data` as both our input data and target. Notice 
 we are setting up the validation data using the same format.
 
-Let's predict on our test dataset and display the original image together with the 
-prediction from our autoencoder.
+Let's predict on the test dataset and display the original image together with the 
+prediction from the autoencoder. Notice how the predictions are pretty close to the 
+original images, although not quite the same.
 
-Notice how the predictions are pretty close to the original images, although not quite 
-the same.
-
-Now that we know that our autoencoder works, let's retrain it using the noisy data as 
-our input and the clean data as our target. We want our autoencoder to learn how to 
-denoise the images.
+Now that we know the autoencoder works, let's retrain it using the noisy data as the
+input and the clean data as a target. We want the autoencoder to learn how to denoise 
+the images.
 
 ## Predict the data 
 
@@ -60,20 +58,14 @@ for gpu in gpus:
 
 
 def preprocess(array):
-    """
-    Normalizes the supplied array and reshapes it into the appropriate format.
-    """
-
+    # Normalizes the supplied array and reshapes it into the appropriate format.
     array = array.astype("float32") / 255.0
     array = np.reshape(array, (len(array), 28, 28, 1))
     return array
 
 
 def noise(array):
-    """
-    Adds random noise to each image in the supplied array.
-    """
-
+    # Adds random noise to each image in the supplied array.
     noise_factor = 0.4
     noisy_array = array + noise_factor * np.random.normal(
         loc=0.0, scale=1.0, size=array.shape
@@ -83,12 +75,8 @@ def noise(array):
 
 
 def display(array1, array2):
-    """
-    Displays ten random images from each one of the supplied arrays.
-    """
-
+    # Displays ten random images from each one of the supplied arrays.
     n = 10
-
     indices = np.random.randint(len(array1), size=n)
     images1 = array1[indices, :]
     images2 = array2[indices, :]
@@ -123,7 +111,7 @@ test_data = preprocess(test_data)
 noisy_train_data = noise(train_data)
 noisy_test_data = noise(test_data)
 
-# Display the train data and a version of it with added noise
+# Display the train data and a related version with added noise
 display(train_data, noisy_train_data)
 
 
