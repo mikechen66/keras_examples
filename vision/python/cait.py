@@ -943,4 +943,12 @@ Retrieving token from files failed with "NOT_FOUND: Could not locate the
 credentials file.". Retrieving token from GCE failed with "FAILED_PRECONDITION: 
 Error executing an HTTP request: libcurl code 6 meaning 'Couldn't resolve host 
 name', error details: Could not resolve host: metadata".
+
+You could not run the script if your internet is poor or Google refused your
+connection requirement. It gives the following message. 
+
+tensorflow.python.framework.errors_impl.AbortedError: All 10 retry attempts 
+failed. The last failure: Error executing an HTTP request: libcurl code 60 
+meaning 'SSL peer certificate or SSH remote key was not OK', error details: 
+SSL certificate problem: unable to get local issuer certificate
 """
