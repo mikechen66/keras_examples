@@ -148,7 +148,9 @@ from scipy import ndimage
 
 
 def read_nifti_file(filepath):
-    """Read and load volume"""
+    """
+    Read and load volume
+    """
     # Read file
     scan = nib.load(filepath)
     # Get raw data
@@ -157,7 +159,9 @@ def read_nifti_file(filepath):
 
 
 def normalize(volume):
-    """Normalize the volume"""
+    """
+    Normalize the volume
+    """
     min = -1000
     max = 400
     volume[volume < min] = min
@@ -168,7 +172,9 @@ def normalize(volume):
 
 
 def resize_volume(img):
-    """Resize across z-axis"""
+    """
+    Resize across z-axis
+    """
     # Set the desired depth
     desired_depth = 64
     desired_width = 128
@@ -192,7 +198,9 @@ def resize_volume(img):
 
 
 def process_scan(path):
-    """Read and resize volume"""
+    """
+    Read and resize volume
+    """
     # Read scan
     volume = read_nifti_file(path)
     # Normalize
@@ -249,7 +257,9 @@ from scipy import ndimage
 
 @tf.function
 def rotate(volume):
-    """Rotate the volume by a few degrees"""
+    """
+    Rotate the volume by a few degrees
+    """
 
     def scipy_rotate(volume):
         # define some rotation angles
@@ -267,7 +277,9 @@ def rotate(volume):
 
 
 def train_preprocessing(volume, label):
-    """Process training data by rotating and adding a channel."""
+    """
+    Process training data by rotating and adding a channel.
+    """
     # Rotate volume
     volume = rotate(volume)
     volume = tf.expand_dims(volume, axis=3)
@@ -314,7 +326,9 @@ plt.imshow(np.squeeze(image[:, :, 30]), cmap="gray")
 # Visualize a montage of the slices since a CT scan has many slices
 
 def plot_slices(num_rows, num_columns, width, height, data):
-    """Plot a montage of 20 CT slices"""
+    """
+    Plot a montage of 20 CT slices
+    """
     data = np.rot90(np.array(data))
     data = np.transpose(data)
     data = np.reshape(data, (num_rows, num_columns, width, height))
@@ -345,8 +359,9 @@ plot_slices(4, 10, 128, 128, image[:, :, :40])
 ## Define a 3D convolutional neural network
 
 def get_model(width=128, height=128, depth=64):
-    """Build a 3D convolutional neural network model."""
-
+    """
+    Build a 3D convolutional neural network model.
+    """
     inputs = keras.Input((width, height, depth, 1))
 
     x = layers.Conv3D(filters=64, kernel_size=3, activation="relu")(inputs)
