@@ -7,35 +7,34 @@ Description: MIL approach to classify bags of instances and get their individual
 
 ## Introduction
 
-### What is Multiple Instance Learning (MIL)?
+# What is Multiple Instance Learning (MIL)?
 
 Usually, with supervised learning algorithms, the learner receives labels for a set of instances. 
 In the case of MIL, the learner receives labels for a set of bags, each of which contains a set 
 of instances. The bag is labeled positive if it contains at least one positive instance, and 
 negative if it does not contain any.
 
-### Motivation
+# Motivation
 
 It is often assumed in image classification tasks that each image clearly represents a class label. 
-In medical imaging(e.g.computational pathology, etc.) an *entire image* is represented by a single 
+In medical imaging(e.g.computational pathology, etc.) an entire image is represented by a single 
 class label (cancerous/non-cancerous) or a region of interest could be given. However, one will be 
 interested in knowing which patterns in the image is actually causing it to belong to that class. 
 In this context, the image(s) will be divided and the subimages will form the bag of instances.
-
 Therefore, the goals are to:
 
-1. Learn a model to predict a class label for a bag of instances.
-2. Find out which instances within the bag caused a position class label prediction.
+1.Learn a model to predict a class label for a bag of instances.
+2.Find out which instances within the bag caused a position class label prediction.
 
-### Implementation
+## Implementation
 
 The following steps describe how the model works:
 
-1. The feature extractor layers extract feature embeddings.
-2. The embeddings are fed into the MIL attention layer to get the attention scores. The layer is 
-   designed as permutation-invariant.
-3. Input features and their corresponding attention scores are multiplied together.
-4. The resulting output is passed to a softmax function for classification.
+1.The feature extractor layers extract feature embeddings.
+2.The embeddings are fed into the MIL attention layer to get the attention scores. The layer is 
+  designed as permutation-invariant.
+3.Input features and their corresponding attention scores are multiplied together.
+4.The resulting output is passed to a softmax function for classification.
 
 ## Create dataset
 
@@ -50,7 +49,7 @@ contain any positive instance, the bag will be considered as negative.
 - `VAL_BAG_COUNT`: The number of validation bags.
 - `BAG_SIZE`: The number of instances in a bag.
 - `PLOT_SIZE`: The number of bags to plot.
-- `ENSEMBLE_AVG_COUNT`: The number of models to create and average together. (Option: often results 
+- `ENSEMBLE_AVG_COUNT`: The number of models to create and average together(Option: often results 
    in better performance - set to 1 for single model)
 
 ## Prepare bags
@@ -60,24 +59,24 @@ label is randomly placed among the instances in the positive bag.
 
 ## Create the model
 
-We will now build the attention layer, prepare some utilities, then build and train the entire model.
+We will build the attention layer, prepare some utilities, then build and train the entire model.
 
 Attention operator implementation: The output size of this layer is decided by the size of a single 
 bag. The attention mechanism uses a weighted average of instances in a bag, in which the sum of the 
 weights must equal to 1 (invariant of the bag size).
 
-The weight matrices (parameters) are **w** and **v**. To include positive and negative values, hyper-
-bolic tangent element-wise non-linearity is utilized.
+The weight matrices (parameters) are w and v. To include positive and negative values, hyper-bolic 
+tangent element-wise non-linearity is utilized.
 
-A **Gated attention mechanism** can be used to deal with complex relations. Another weight matrix, 
-**u**, is added to the computation. A sigmoid non-linearity is used to overcome approximately linear 
-behavior for *x* ∈ [−1, 1] by hyperbolic tangent non-linearity.
+A Gated attention mechanism can be used to deal with complex relations. Another weight matrix, u, 
+is added to the computation. A sigmoid non-linearity is used to overcome approximately linear 
+behavior for x ∈ [−1, 1] by hyperbolic tangent non-linearity.
 
 ## Visualizer tool
 
-Plot the number of bags (given by `PLOT_SIZE`) with respect to the class. Moreover, if activated, the 
-class label prediction with its associated instance score for each bag (after the model has been 
-trained) can be seen.
+Plot the number of bags (given by `PLOT_SIZE`) with respect to the class. Moreover, if activated, 
+the class label prediction with its associated instance score for each bag (after the model has 
+been trained) can be seen.
 
 ## Create model
 
@@ -87,19 +86,14 @@ softmax function to output the class probabilities.
 ## Class weights
 
 Since this kind of problem could simply turn into imbalanced data classification problem, class 
-weighting should be considered. Let's say there are 1000 bags. There often could be cases were ~90 % 
-of the bags do not contain any positive label and ~10 % do. Such data can be referred to as **Im-
-balanced data**.
-
-Using class weights, the model will tend to give a higher weight to the rare class.
-
-## Build and train model
-
-The model is built and trained in this section.
+weighting should be considered. Let's say there are 1000 bags. There often could be cases were 
+~90 % of the bags do not contain any positive label and ~10 % do. Such data can be referred to 
+as Imbalanced data. Using class weights, the model will tend to give a higher weight to the rare 
+class.
 
 ## Model evaluation
 
-The models are now ready for evaluation.With each model we also create an associated intermediate 
+The models are now ready for evaluation. With each model we also create an associated intermediate 
 model to get the weights from the attention layer.
 
 We will compute a prediction for each of our `ENSEMBLE_AVG_COUNT` models, and average them together 
@@ -112,19 +106,15 @@ the instance which resulted in the positive labeling will have a substantially h
 score than the rest of the bag. However, in a negatively predicted bag, there are two cases:
 
 * All instances will have approximately similar scores.
-* An instance will have relatively higher score (but not as high as of a positive instance).
-This is because the feature space of this instance is close to that of the positive instance.
+* An instance will have relatively higher score (but not as high as of a positive instance). This 
+  is because the feature space of this instance is close to that of the positive instance.
 
 ## Remarks
 
 If the model is overfit, the weights will be equally distributed for all bags. Hence, the regulari-
-zation techniques are necessary.
-
-In the paper, the bag sizes can differ from one bag to another. For simplicity, the bag sizes are 
-fixed here.
-
-In order not to rely on the random initial weights of a single model, averaging ensemble methods 
-should be considered.
+zation techniques are necessary. In the paper, the bag sizes can differ from one bag to another. 
+For simplicity, the bag sizes are fixed here. In order not to rely on the random initial weights 
+of a single model, averaging ensemble methods should be considered.
 
 ## References
 
@@ -132,6 +122,14 @@ should be considered.
 attention operator code implementation was inspired from https://github.com/utayao/Atten_Deep_MIL.
 Imbalanced data [tutorial](https://www.tensorflow.org/tutorials/structured_data/imbalanced_data)
 by TensorFlow.
+
+Example available on HuggingFace.
+| Trained Model | Demo |
+| :--: | :--: |
+| [![Generic badge](https://img.shields.io/badge/🤗%20Model-Attention%20MIL-black.svg)]
+(https://huggingface.co/keras-io/attention_mil) | 
+[![Generic badge](https://img.shields.io/badge/🤗%20Spaces-Attention%20MIL-black.svg)]
+(https://huggingface.co/spaces/keras-io/Attention_based_Deep_Multiple_Instance_Learning)|
 """
 
 
@@ -212,7 +210,8 @@ val_data, val_labels = create_bags(
 ## Create the model
 
 class MILAttentionLayer(layers.Layer):
-    """Implementation of the attention-based Deep MIL layer.
+    """
+    Implementation of the attention-based Deep MIL layer.
     Args:
       weight_params_dim: Positive Integer. Dimension of the weight matrix.
       kernel_initializer: Initializer for the `kernel` matrix.
@@ -284,10 +283,10 @@ class MILAttentionLayer(layers.Layer):
 
     def call(self, inputs):
 
-        # Assigning variables from the number of inputs.
+        # Assign variables from the number of inputs.
         instances = [self.compute_attention_scores(instance) for instance in inputs]
 
-        # Apply softmax over instances such that the output summation is equal to 1.
+        # Apply softmax over instances so that the output summation is equal to 1.
         alpha = tf.math.softmax(instances, axis=0)
 
         return [alpha[i] for i in range(alpha.shape[0])]
@@ -444,9 +443,9 @@ def train(train_data, train_labels, val_data, val_labels, model):
         save_weights_only=True,
     )
 
-    # Initialize early stopping callback.
-    # The model performance is monitored across the validation data and stops training
-    # when the generalization error cease to decrease.
+    # Initialize early stopping callback. The model performance is monitored 
+    # across the validation data and stops training when the generalization 
+    # error cease to decrease.
     early_stopping = keras.callbacks.EarlyStopping(
         monitor="val_loss", patience=10, mode="min"
     )
@@ -541,6 +540,7 @@ plot(
     predictions=class_predictions,
     attention_weights=attention_params,
 )
+
 plot(
     val_data,
     val_labels,
@@ -548,13 +548,3 @@ plot(
     predictions=class_predictions,
     attention_weights=attention_params,
 )
-
-"""
-Example available on HuggingFace.
-| Trained Model | Demo |
-| :--: | :--: |
-| [![Generic badge](https://img.shields.io/badge/🤗%20Model-Attention%20MIL-black.svg)]
-(https://huggingface.co/keras-io/attention_mil) | 
-[![Generic badge](https://img.shields.io/badge/🤗%20Spaces-Attention%20MIL-black.svg)]
-(https://huggingface.co/spaces/keras-io/Attention_based_Deep_Multiple_Instance_Learning)|
-"""
