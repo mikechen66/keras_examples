@@ -7,7 +7,7 @@ Description: How to implement an OCR model using CNNs, RNNs and CTC loss.
 
 ## Introduction
 
-This example demonstrates a simple OCR model built with the Functional API. Apart from combining
+The example demonstrates a simple OCR model built with the Functional API. Apart from combining
 CNN and RNN, it also illustrates how you can instantiate a new layer and use it as an "Endpoint 
 layer" for implementing CTC loss. For a detailed guide to layer subclassing, please check out
 [this page](https://keras.io/guides/making_new_layers_and_models_via_subclassing/) in the 
@@ -16,9 +16,9 @@ developer guides.
 Load the data: [Captcha Images](https://www.kaggle.com/fournierp/captcha-version-2-images)
 Let's download the data.
 
-shell
-curl -LO https://github.com/AakashKumarNain/CaptchaCracker/raw/master/captcha_images_v2.zip
-unzip -qq captcha_images_v2.zip
+Download the data with terminal or shell
+$ curl -LO https://github.com/AakashKumarNain/CaptchaCracker/raw/master/captcha_images_v2.zip
+$ unzip -qq captcha_images_v2.zip
 
 The dataset contains 1040 captcha files as `png` images. The label for each sample is a string,
 the name of the file (minus the file extension).
@@ -33,10 +33,10 @@ You can use the trained model [Hugging Face Hub](https://huggingface.co/keras-io
 and try the demo[Hugging Face Spaces](https://huggingface.co/spaces/keras-io/ocr-for-captcha).
 """
 
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-
 from pathlib import Path
 from collections import Counter
 
@@ -66,11 +66,9 @@ batch_size = 16
 img_width = 200
 img_height = 50
 
-# Factor by which the image is going to be downsampled
-# by the convolutional blocks. We will be using two
-# convolution blocks and each block will have
-# a pooling layer which downsample the features by a factor of 2.
-# Hence total downsampling factor would be 4.
+# Factor by which the image is going to be downsampled by the conv blocks. We use
+# two conv  blocks and each block will have a pooling layer which downsample the 
+# features by a factor of 2. Hence total downsampling factor would be 4.
 downsample_factor = 4
 
 # Maximum length of any captcha in the dataset
@@ -79,11 +77,9 @@ max_length = max([len(label) for label in labels])
 
 ## Preprocessing
 
-# AttributeError: module 'tensorflow.keras.layers' has no attribute 'StringLookup'
-# Mapping characters to integers
 char_to_num = layers.StringLookup(vocabulary=list(characters), mask_token=None)
 
-# Mapping integers back to original characters
+# Map integers back to original characters
 num_to_char = layers.StringLookup(
     vocabulary=char_to_num.get_vocabulary(), mask_token=None, invert=True
 )
@@ -92,7 +88,7 @@ num_to_char = layers.StringLookup(
 def split_data(images, labels, train_size=0.9, shuffle=True):
     # 1.Get the total size of the dataset
     size = len(images)
-    # 2.Make an indices array and shuffle it, if required
+    # 2.Make an indices array and shuffle it if required
     indices = np.arange(size)
     if shuffle:
         np.random.shuffle(indices)
@@ -104,25 +100,25 @@ def split_data(images, labels, train_size=0.9, shuffle=True):
     return x_train, x_valid, y_train, y_valid
 
 
-# Splitting data into training and validation sets
+# Split data into training and validation sets
 x_train, x_valid, y_train, y_valid = split_data(np.array(images), np.array(labels))
 
 
 def encode_single_sample(img_path, label):
-    # 1. Read image
+    # 1.Read image
     img = tf.io.read_file(img_path)
-    # 2. Decode and convert to grayscale
+    # 2.Decode and convert to grayscale
     img = tf.io.decode_png(img, channels=1)
-    # 3. Convert to float32 in [0, 1] range
+    # 3.Convert to float32 in [0, 1] range
     img = tf.image.convert_image_dtype(img, tf.float32)
-    # 4. Resize to the desired size
+    # 4.Resize to the desired size
     img = tf.image.resize(img, [img_height, img_width])
-    # 5. Transpose the image because we want the time
+    # 5.Transpose the image because we want the time
     # dimension to correspond to the width of the image.
     img = tf.transpose(img, perm=[1, 0, 2])
-    # 6. Map the characters in label to numbers
+    # 6.Map the characters in label to numbers
     label = char_to_num(tf.strings.unicode_split(label, input_encoding="UTF-8"))
-    # 7. Return a dict as our model is expecting two inputs
+    # 7.Return a dict as our model is expecting two inputs
     return {"image": img, "label": label}
 
 
@@ -178,7 +174,7 @@ class CTCLayer(layers.Layer):
         loss = self.loss_fn(y_true, y_pred, input_length, label_length)
         self.add_loss(loss)
 
-        # At test time, just return the computed predictions
+        # Return the computed predictions at the test time. 
         return y_pred
 
 
@@ -211,10 +207,10 @@ def build_model():
     )(x)
     x = layers.MaxPooling2D((2, 2), name="pool2")(x)
 
-    # We have used two max pool with pool size and strides 2.
-    # Hence, downsampled feature maps are 4x smaller. The number of
-    # filters in the last layer is 64. Reshape accordingly before
-    # passing the output to the RNN part of the model
+    # We have used two max pool with pool size and strides 2. Hence, 
+    # downsampled feature maps are 4x smaller. The number of filters 
+    # in the last layer is 64. Reshape accordingly before passing 
+    # the output to the RNN part of the model
     new_shape = ((img_width // 4), (img_height // 4) * 64)
     x = layers.Reshape(target_shape=new_shape, name="reshape")(x)
     x = layers.Dense(64, activation="relu", name="dense1")(x)
@@ -238,7 +234,7 @@ def build_model():
     )
     # Optimizer
     opt = keras.optimizers.Adam()
-    # Compile the model and return
+    # Compile the model and give a return
     model.compile(optimizer=opt)
     return model
 
@@ -289,7 +285,7 @@ def decode_batch_predictions(pred):
     return output_text
 
 
-# Let's check results on some validation samples
+# Check results on some validation samples
 for batch in validation_dataset.take(1):
     batch_images = batch["image"]
     batch_labels = batch["label"]
@@ -310,4 +306,6 @@ for batch in validation_dataset.take(1):
         ax[i // 4, i % 4].imshow(img, cmap="gray")
         ax[i // 4, i % 4].set_title(title)
         ax[i // 4, i % 4].axis("off")
+        
+
 plt.show()
