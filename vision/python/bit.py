@@ -3,13 +3,13 @@ Title: Image Classification using BigTransfer (BiT)
 Author: [Sayan Nath](https://twitter.com/sayannath2350)
 Date created: 2021/09/24
 Last modified: 2021/09/24
-Description: BigTransfer(BiT)State-of-the-art transfer learning for image classification.
+Description: BigTransfer(BiT) State-of-the-art transfer learning for image classification.
 
 ## Introduction
 
-BiT is a state-of-the-art transfer learning method for image classification.  Transfer of 
+BiT is a state-of-the-art transfer learning method for image classification. Transfer of 
 pre-trained representations improves sample efficiency and simplifies hyper- parameter 
-tuning when training deep neural networks for vision. BiT revisit the paradigm  of pre-
+tuning when training deep neural networks for vision. BiT revisit the paradigm of pre-
 training on large supervised datasets and fine-tuning the model on a target task. The 
 importance of appropriately choosing normalization layers and scaling the architecture 
 capacity as the amount of pre-training data increases.
@@ -48,12 +48,12 @@ Implementation in [Keras Coding Examples](https://keras.io/examples/vision/mixup
 
 ## Create BigTransfer (BiT) model
 
-1. Cut off the BiT model’s original head. This leaves us with the “pre-logits” output. We 
+1.Cut off the BiT model’s original head. This leaves us with the “pre-logits” output. We 
 do not have to do this if we use the ‘feature extractor’ models (i.e. all those in sub-
 directories titled `feature_vectors`), since for those models the head has already been 
 cut off.
 
-2. Add a new head with the number of outputs equal to the number of classes of our new task. 
+2.Add a new head with the number of outputs equal to the number of classes of our new task. 
 Note that it is important that we initialise the head to all zeroes.
 
 ## Conclusion
@@ -66,8 +66,16 @@ with 10 examples per class.
 
 ![](https://i.imgur.com/b1Lw5fz.png)
 
-You can experiment further with the BigTransfer Method by following the
+You can experiment further with the BigTransfer Method by following the weblink
 [original paper](https://arxiv.org/abs/1912.11370).
+
+**Example available on HuggingFace**
+| Trained Model | Demo |
+| :--: | :--: |
+| [![Generic badge](https://img.shields.io/badge/%F0%9F%A4%97%20Model-bit-black.svg)]
+(https://huggingface.co/keras-io/bit) | 
+[![Generic badge](https://img.shields.io/badge/%F0%9F%A4%97%20Spaces-bit-black.svg)]
+(https://huggingface.co/spaces/keras-io/siamese-contrastive) |
 """
 
 
@@ -271,7 +279,6 @@ def plot_hist(hist):
     plt.legend(["train_acc", "val_acc", "train_loss", "val_loss"], loc="upper left")
     plt.show()
 
-
 plot_hist(history)
 
 
@@ -279,13 +286,3 @@ plot_hist(history)
 
 accuracy = model.evaluate(pipeline_validation)[1] * 100
 print("Accuracy: {:.2f}%".format(accuracy))
-
-"""
-**Example available on HuggingFace**
-| Trained Model | Demo |
-| :--: | :--: |
-| [![Generic badge](https://img.shields.io/badge/%F0%9F%A4%97%20Model-bit-black.svg)]
-(https://huggingface.co/keras-io/bit) | 
-[![Generic badge](https://img.shields.io/badge/%F0%9F%A4%97%20Spaces-bit-black.svg)]
-(https://huggingface.co/spaces/keras-io/siamese-contrastive) |
-"""
