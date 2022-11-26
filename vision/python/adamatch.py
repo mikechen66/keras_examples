@@ -129,7 +129,6 @@ AdaMatch. Please check out [this notebook] to learn more about the hyperparamete
 mental details.
 (https://colab.research.google.com/github/sayakpaul/AdaMatch-TF/blob/main/Vanilla_WideResNet.ipynb)
 
-
 You can reproduce the results by using the following weights. 
 [model weights](https://github.com/sayakpaul/AdaMatch-TF/releases/tag/v1.0.0).
 
@@ -140,6 +139,16 @@ You can reproduce the results by using the following weights.
 Popular domain adaptation algorithms in deep learning include
 [Deep CORAL](https://arxiv.org/abs/1612.01939),
 [Moment Matching](https://arxiv.org/abs/1812.01754), etc.
+
+Example available on HuggingFace
+| Trained Model | Demo |
+| :--: | :--: |
+| [![Generic badge]
+(https://img.shields.io/badge/%F0%9F%A4%97%20Model-AdaMatch%20Domain%20Adaption-black.svg)]
+(https://huggingface.co/keras-io/adamatch-domain-adaption) | 
+[![Generic badge]
+(https://img.shields.io/badge/%F0%9F%A4%97%20Spaces-AdaMatch%20Domain%20Adaption-black.svg)]
+(https://huggingface.co/spaces/keras-io/adamatch-domain-adaption) |
 """
 
 
@@ -357,7 +366,7 @@ class AdaMatch(keras.Model):
             c_tau = self.tau * final_sum
             mask = tf.reduce_max(y_tilde_target_w, axis=-1) >= c_tau
 
-            ## Compute losses (pay attention to the indexing) ##
+            # Compute losses (pay attention to the indexing)
             source_loss = compute_loss_source(
                 source_labels,
                 final_source_logits[: tf.shape(source_w)[0]],
@@ -547,16 +556,3 @@ source_test_ds = (
 # Evaluation on the source test set.
 _, accuracy = adamatch_trained_model.evaluate(source_test_ds)
 print(f"Accuracy on source test set: {accuracy * 100:.2f}%")
-
-
-"""
-Example available on HuggingFace
-| Trained Model | Demo |
-| :--: | :--: |
-| [![Generic badge]
-(https://img.shields.io/badge/%F0%9F%A4%97%20Model-AdaMatch%20Domain%20Adaption-black.svg)]
-(https://huggingface.co/keras-io/adamatch-domain-adaption) | 
-[![Generic badge]
-(https://img.shields.io/badge/%F0%9F%A4%97%20Spaces-AdaMatch%20Domain%20Adaption-black.svg)]
-(https://huggingface.co/spaces/keras-io/adamatch-domain-adaption) |
-"""
