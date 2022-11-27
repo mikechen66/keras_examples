@@ -92,9 +92,10 @@ import matplotlib.pyplot as plt
 tf.random.set_seed(123)
 
 
+"""
 # It is defaulted as a relative path. The val dataset will be 
 # stored in the ipynb file. Its real path is "/val/" rather 
-# than "/dataset/"
+# than "/dataset/". 
 annotation_folder = "/dataset/"
 if not os.path.exists(os.path.abspath(".") + annotation_folder):
     annotation_zip = tf.keras.utils.get_file(
@@ -103,11 +104,15 @@ if not os.path.exists(os.path.abspath(".") + annotation_folder):
         origin="http://diode-dataset.s3.amazonaws.com/val.tar.gz",
         extract=True,
     )
+"""
+
 
 ## Preparing the dataset
 
 # As explained as the above. 
-path = "val/indoors"
+# For downloaded dataset, we run it directly form the directory. 
+# path = "val/indoors"
+path = "/home/mike/Documents/keras-io-master/examples/vision/val/indoors"
 
 filelist = []
 
