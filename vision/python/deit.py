@@ -21,40 +21,40 @@ transformer-based vision models. DeiT is among the first works to show that it's
 well without using larger datasets.
 
 In this example, we implement the distillation recipe proposed in DeiT. It requires us to slightly tweak 
-the original ViT architecture and write a custom training loop to implement the distillation recipe.
+the original ViT architecture and write a custom training loop to implement the distillation recipe.To 
+run the example, you need TensorFlow Addons, which you can install with the following command:
 
-To run the example, you'll need TensorFlow Addons, which you can install with the following command:
+For Miniconda environment: 
 
+$ conda install pip (ignore it if install the package)
 $ pip install tensorflow-addons
 
-To navigate through this example, you'll be expected to know how a ViT and knowledge distillation work. 
-The following are good resources in case you needed a refresher:
+To navigate through the example, you will be expected to know how a ViT and knowledge distillation work. 
+The following are good resources in case you need a refresher:
 
 *[ViT on keras.io](https://keras.io/examples/vision/image_classification_with_vision_transformer)
 *[Knowledge distillation on keras.io](https://keras.io/examples/vision/knowledge_distillation/)
 
 ## Download the dataset
 
-shell
-wget -q https://github.com/sayakpaul/deit-tf/releases/download/v0.1.0/bit_teacher_flowers.zip
-unzip -q bit_teacher_flowers.zip
-
+$ wget -q https://github.com/sayakpaul/deit-tf/releases/download/v0.1.0/bit_teacher_flowers.zip
+$ unzip -q bit_teacher_flowers.zip
 
 Please have a look at the explaination to the major parts as follows. 
 
-## Constants 
+## Set constants 
 
-You probably noticed that `DROPOUT_RATE` has been set 0.0. Dropout has been used in the implementation 
-to keep it complete. For smaller models (like the one used in this example), you don't need it, but for 
+You probably noticed that DROPOUT_RATE has been set 0.0. Dropout has been used in the implementation 
+to keep it complete. For smaller models (like the one used in thr example), you don't need it, but for 
 bigger models, using dropout helps.
 
-## Load the 'tf_flowers' dataset and prepare preprocessing utilities
+## Load the tf_flowers dataset and prepare preprocessing utilities
 
 The authors use an array of different augmentation techniques, including MixUp ([Zhang et al.]
 (https://arxiv.org/abs/1710.09412)), RandAugment ([Cubuk et al.](https://arxiv.org/abs/1909.13719)),
 and so on. However, to keep the example simple to work through, we'll discard them.
 
-## Implementing the DeiT variants of ViT
+## Implement the DeiT variants of ViT
 
 Since DeiT is an extension of ViT it'd make sense to first implement ViT and then extend it to support 
 DeiT's components.
@@ -62,11 +62,11 @@ DeiT's components.
 First, we'll implement a layer for Stochastic Depth([Huang et al.](https://arxiv.org/abs/1603.09382))
 which is used in DeiT for regularization.
 
-We'll now implement a `ViTClassifier` class building on top of the components we just developed. Here we
+We'll now implement a ViTClassifier class building on top of the components we just developed. Here we
 will be following the original pooling strategy used in the ViT paper - use a class token and use the 
 feature representations corresponding to it for classification.
 
-This class can be used standalone as ViT and is end-to-end trainable. Just remove the 'distilled' phrase 
+The class can be used standalone as ViT and is end-to-end trainable. Just remove the 'distilled' phrase 
 in 'MODEL_TYPE' and it should work with 'vit_tiny = ViTClassifier()''. Let's now extend it to DeiT. The 
 following figure presents the schematic of DeiT (taken from the DeiT paper):
 
@@ -76,7 +76,7 @@ Apart from the class token, DeiT has another token for distillation. During dist
 corresponding to the class token are compared to the true labels, and the logits corresponding to the 
 distillation token are compared to the teacher's predictions.
 
-## Implementing the trainer
+## Implement the trainer
 
 Unlike what happens in standard knowledge distillation([Hinton et al.](https://arxiv.org/abs/1503.02531)),
 where a temperature-scaled softmax is used as well as KL divergence, DeiT authors use the following loss 
@@ -97,7 +97,7 @@ fine-tuned on the `tf_flowers` dataset. You can refer to[this notebook]
 (https://github.com/sayakpaul/deit-tf/blob/main/notebooks/bit-teacher.ipynb) to know how the training was 
 performed. The teacher model has about 212 Million parameters which is about 40x more than the student.
 
-If we had trained the same model (the `ViTClassifier`) from scratch with the exact same hyperparameters, 
+If we had trained the same model (the ViTClassifier) from scratch with the exact same hyperparameters, 
 the model would have scored about 59% accuracy. You can adapt the following code to reproduce this result:
 
 '''
@@ -126,15 +126,11 @@ out these models on TF-Hub](https://tfhub.dev/sayakpaul/collections/deit/1).
 
 ## Acknowledgements
 
-*Ross Wightman for keeping
-[`timm`](https://github.com/rwightman/pytorch-image-models)
-updated with readable implementations. I referred to the implementations of ViT and DeiT
-a lot during implementing them in TensorFlow.
-[Aritra Roy Gosthipaty](https://github.com/ariG23498)
-who implemented some portions of the `ViTClassifier` in another project.
-*[Google Developers Experts](https://developers.google.com/programs/experts/)
-program for supporting me with GCP credits which were used to run experiments for this
-example.
+*Ross Wightman for keeping [`timm`](https://github.com/rwightman/pytorch-image-models) updated with readable 
+implementations. I referred to the implementations of ViT and DeiT a lot during implementing them in TensorFlow.
+[Aritra Roy Gosthipaty](https://github.com/ariG23498) who implemented some portions of the ViTClassifier in 
+another project.[Google Developers Experts](https://developers.google.com/programs/experts/) program for 
+supporting me with GCP credits which were used to run experiments for the example.
 
 Example available on HuggingFace:
 
@@ -195,13 +191,12 @@ AUTO = tf.data.AUTOTUNE
 NUM_CLASSES = 5
 
 
-## Load the `tf_flowers` dataset and prepare preprocessing utilities
+## Load the tf_flowers dataset and prepare preprocessing utilities
 
 def preprocess_dataset(is_training=True):
     def fn(image, label):
         if is_training:
-            # Resize to a bigger spatial resolution and take the random
-            # crops.
+            # Resize to a bigger spatial resolution and take the random crops.
             image = tf.image.resize(image, (RESOLUTION + 20, RESOLUTION + 20))
             image = tf.image.random_crop(image, (RESOLUTION, RESOLUTION, 3))
             image = tf.image.random_flip_left_right(image)
@@ -232,9 +227,9 @@ train_dataset = prepare_dataset(train_dataset, is_training=True)
 val_dataset = prepare_dataset(val_dataset, is_training=False)
 
 
-## Implementing the DeiT variants of ViT
+## Implement the DeiT variants of ViT
 
-# Referred from github.com:rwightman/pytorch-image-models.
+# Being Referred from github.com:rwightman/pytorch-image-models.
 class StochasticDepth(layers.Layer):
     def __init__(self, drop_prop, **kwargs):
         super().__init__(**kwargs)
@@ -253,11 +248,8 @@ class StochasticDepth(layers.Layer):
 # Implement the MLP and Transformer blocks.
 
 def mlp(x, dropout_rate: float, hidden_units: List):
-    """
-    FFN for a Transformer block.
-    """
-    # Iterate over the hidden units and
-    # add Dense => Dropout.
+    # FFN for a Transformer block.
+    # Iterate over the hidden units and add Dense => Dropout.
     for (idx, units) in enumerate(hidden_units):
         x = layers.Dense(
             units,
@@ -268,9 +260,7 @@ def mlp(x, dropout_rate: float, hidden_units: List):
 
 
 def transformer(drop_prob: float, name: str) -> keras.Model:
-    """
-    Transformer block with pre-norm.
-    """
+    # Transformer block with pre-norm.
     num_patches = NUM_PATCHES + 2 if "distilled" in MODEL_TYPE else NUM_PATCHES + 1
     encoded_patches = layers.Input((num_patches, PROJECTION_DIM))
 
@@ -304,9 +294,6 @@ def transformer(drop_prob: float, name: str) -> keras.Model:
 
 
 class ViTClassifier(keras.Model):
-    """
-    Vision Transformer base class.
-    """
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -377,8 +364,7 @@ class ViTClassifier(keras.Model):
         )  # (B, number_patches, projection_dim)
         encoded_patches = self.dropout(encoded_patches)
 
-        # Iterate over the number of layers and stack up blocks of
-        # Transformer.
+        # Iterate over the number of layers and stack up blocks of Transformer.
         for transformer_module in self.transformer_blocks:
             # Add a Transformer block.
             encoded_patches = transformer_module(encoded_patches)
@@ -400,7 +386,7 @@ class ViTDistilled(ViTClassifier):
         self.num_tokens = 2
         self.regular_training = regular_training
 
-        # CLS and distillation tokens, positional embedding.
+        # CLS and distillation tokens/positional embedding.
         init_value = tf.zeros((1, 1, PROJECTION_DIM))
         self.dist_token = tf.Variable(init_value, name="dist_token")
         self.positional_embedding = tf.Variable(
@@ -445,8 +431,7 @@ class ViTDistilled(ViTClassifier):
         )  # (B, number_patches, projection_dim)
         encoded_patches = self.dropout(encoded_patches)
 
-        # Iterate over the number of layers and stack up blocks of
-        # Transformer.
+        # Iterate over the number of layers and stack up blocks of Transformer.
         for transformer_module in self.transformer_blocks:
             # Add a Transformer block.
             encoded_patches = transformer_module(encoded_patches)
@@ -461,17 +446,17 @@ class ViTDistilled(ViTClassifier):
         )
 
         if not training or self.regular_training:
-            # During standard train / finetune, inference average the classifier
+            # During standard train/finetune, inference average the classifier
             # predictions.
             return (x + x_dist) / 2
 
         elif training:
-            # Only return separate classification predictions when training in distilled
-            # mode.
+            # Only return separate classification predictions when training in 
+            # distilled mode.
             return x, x_dist
 
 
-# Verify if the `ViTDistilled` class can be initialized and called as expected.
+# Verify if the ViTDistilled class can be initialized and called as expected.
 
 deit_tiny_distilled = ViTDistilled()
 
@@ -480,7 +465,7 @@ outputs = deit_tiny_distilled(dummy_inputs, training=False)
 print(outputs.shape)
 
 
-## Implementing the trainer
+## Implement the trainer
 
 class DeiT(keras.Model):
     # Reference: https://keras.io/examples/vision/knowledge_distillation/
@@ -536,7 +521,7 @@ class DeiT(keras.Model):
         # Update weights.
         self.optimizer.apply_gradients(zip(gradients, trainable_vars))
 
-        # Update the metrics configured in `compile()`.
+        # Update the metrics configured in compile().
         student_predictions = (cls_predictions + dist_predictions) / 2
         self.compiled_metrics.update_state(y, student_predictions)
         self.dist_loss_tracker.update_state(distillation_loss)
@@ -580,10 +565,10 @@ class DeiT(keras.Model):
  but the _output_shapes attribute specifies shapes for 4 outputs. 
  Output shapes may be inaccurate.
 """
-bit_teacher_flowers = keras.models.load_model("/home/mike/datasets/bit_teacher_flowers")
+# bit_teacher_flowers = keras.models.load_model("/home/mike/datasets/bit_teacher_flowers")
+bit_teacher_flowers = keras.models.load_model("bit_teacher_flowers")
 
-
-## Training through distillation
+## Train through distillation
 
 deit_tiny = ViTDistilled()
 deit_distiller = DeiT(student=deit_tiny, teacher=bit_teacher_flowers)
