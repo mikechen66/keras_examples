@@ -9,54 +9,51 @@ Description: Data augmentation with CutMix for image classification on CIFAR-10.
 
 _CutMix_ is a data augmentation technique that addresses the issue of information loss and 
 inefficiency present in regional dropout strategies. Instead of removing pixels and filling 
-them with black or grey pixels or Gaussian noise, you replace the removed regions with a 
+them with black or grey pixels or Gaussian noise, we replace the removed regions with a 
 patch from another image, while the ground truth labels are mixed proportionally to the 
 number of pixels of combined images. CutMix was proposed in [CutMix: Regularization Strategy
 to Train Strong Classifiers with Localizable Features](https://arxiv.org/abs/1905.04899)
-(Yun et al., 2019)
-
-It's implemented via the following formulas:
+(Yun et al., 2019). It's implemented via the following formulas:
 
 <img src="https://i.imgur.com/cGvd13V.png" width="200"/>
 
 where `M` is the binary mask which indicates the cutout and the fill-in regions from the two 
-randomly drawn images and `λ` (in `[0, 1]`) is drawn from a [`Beta(α, α)` distribution]
-(https://en.wikipedia.org/wiki/Beta_distribution)
+randomly drawn images and λ (in '[0, 1]'') is drawn from a ['Beta(α, α)' distribution] in the 
+weblink (https://en.wikipedia.org/wiki/Beta_distribution)
 
 The coordinates of bounding boxes are:
 
 <img src="https://i.imgur.com/eNisep4.png" width="150"/>
 
-which indicates the cutout and fill-in regions in case of the images. The bounding box 
-sampling is represented by:
+which indicates the cutout and fill-in regions in case of the images. The bounding box sampling 
+is represented by:
 
 <img src="https://i.imgur.com/Snph9aj.png" width="200"/>
 
 where 'rx, ry' are randomly drawn from a uniform distribution with upper bound.
 
-
 Please see the major sections as follows
 
 ## Load the CIFAR-10 dataset
 
-In this example, we will use the [CIFAR-10 image classification dataset]
+In this example, we will use the following [CIFAR-10 image classification dataset]
 (https://www.cs.toronto.edu/~kriz/cifar.html).
 
 ## Define the CutMix data augmentation function
 
-The CutMix function takes two `image` and `label` pairs to perform the augmentation. It samples 
-'λ(l)' from the [Beta distribution](https://en.wikipedia.org/wiki/Beta_distribution) and returns 
-a bounding box from `get_box` function. We then crop the second image (`image2`) and pad this 
-image in the final padded image at the same location.
+The CutMix function takes two image and label pairs to perform the augmentation. It samples 
+'λ(l)' from the [Beta distribution](https://en.wikipedia.org/wiki/Beta_distribution) and 
+returns a bounding box from get_box function. We then crop the second image (image2) and 
+pad this image in the final padded image at the same location.
 
 ## Notes
 
-In this example, we trained our model for 15 epochs. The experiment shows the model with CutMix 
-achieves a better accuracy on the CIFAR-10 dataset (80.36% in our experiment) compared to the model 
-that doesn't use the augmentation (72.70%). You may notice it takes less time to train the model 
-with the CutMix augmentation.
+In this example, we train the model for 15 epochs. The experiment shows the model achieves 
+a better accuracy on the CIFAR-10 dataset (80.36% in our experiment) compared to the model 
+that doesn't use the augmentation (72.70%). You may notice it takes less time to train the 
+model with the CutMix augmentation.
 
-You can experiment further with the CutMix technique by following the [original paper]
+You can experiment further with the CutMix technique by the following [original paper]
 (https://arxiv.org/abs/1905.04899). Example available on HuggingFace.
 | Trained Model | Demo |
 | :--: | :--: |
@@ -73,6 +70,7 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow import keras
 
+
 np.random.seed(42)
 tf.random.set_seed(42)
 
@@ -87,6 +85,7 @@ print(x_train.shape)
 print(y_train.shape)
 print(x_test.shape)
 print(y_test.shape)
+
 
 class_names = [
     "Airplane",
@@ -117,7 +116,7 @@ def preprocess_image(image, label):
     return image, label
 
 
-## Convert the data into TensorFlow 'Dataset' objects
+## Convert the data into TensorFlow Dataset objects
 
 train_ds_one = (
     tf.data.Dataset.from_tensor_slices((x_train, y_train))
