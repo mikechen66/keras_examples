@@ -8,39 +8,39 @@ Description: Implement a depth estimation model with a convnet.
 ## Introduction
 
 _Depth estimation_ is a crucial step towards inferring scene geometry from 2D images.
-The goal in _monocular depth estimation_ is to predict the depth value of each pixel or
-inferring depth information, given only a single RGB image as input.
-This example will show an approach to build a depth estimation model with a convnet
-and simple loss functions.
+The goal in _monocular depth estimation_ is to predict the depth value of each pixel 
+or inferring depth information, given only a single RGB image as input. This example 
+will show an approach to build a depth estimation model with a convnet and simple loss 
+functions.
 
 ![depth](https://paperswithcode.com/media/thumbnails/task/task-0000000605-d9849a91.jpg)
 
-## Downloading the dataset
+## Download the dataset
 
 We use the dataset DIODE: A Dense Indoor and Outdoor Depth Dataset for this tutorial. 
-However, we use the validation set generating training and evaluation subsets for our 
-model. The reason we use it rather than the training set of the  original dataset is 
-because the training set consists of 81GB of data, which is  challenging to download 
-compared to the validation set which is only 2.6GB. Other datasets  that you could 
-use are listed as follows. 
+However, we only use the validation set with 2.6 GB generating training and evaluation 
+subsets. We do not use the training set because it has 81 GB (difficult to download). 
+Please see the weblink for the data.  
+
+http://diode-dataset.s3.amazonaws.com/val.tar.gz
 [NYU-v2](https://cs.nyu.edu/~silberman/datasets/nyu_depth_v2.html),
 [KITTI](http://www.cvlibs.net/datasets/kitti/).
 
-## Building a data pipeline
+## Build a data pipeline
 
-1.The pipeline takes a dataframe containing the path for the RGB images,
-  as well as the depth and depth mask files.
+1.The pipeline takes a dataframe containing the path for the RGB images, as well as the 
+  depth and depth mask files.
 2.It reads and resize the RGB images.
 3.It reads the depth and depth mask files, process them to generate the depth map image 
   and resize it.
 4.It returns the RGB images and the depth map images for a batch.
 
-## Building the model
+## Build the model
 
 1.The basic model is from U-Net.
 2.Addditive skip-connections are implemented in the downscaling block.
 
-## Defining the loss
+## Define the loss
 
 We will optimize 3 losses in our mode.
 1. Structural similarity index(SSIM).
@@ -49,7 +49,7 @@ We will optimize 3 losses in our mode.
 
 Out of the three loss functions, SSIM contributes the most to improving model performance.
 
-## Visualizing model output
+## Visualize model output
 
 We visualize the model output over the validation set. The first image is the RGB image, 
 the second image is the ground truth depth map image and the third one is the predicted 
@@ -70,8 +70,6 @@ The following papers go deeper into possible approaches for depth estimation.
 2.[Digging Into Self-Supervised Monocular Depth Estimation]
   (https://openaccess.thecvf.com/content_ICCV_2019/papers/Godard_Digging_Into_Self-Supervised_Monocular_Depth_Estimation_ICCV_2019_paper.pdf)
 3.[Deeper Depth Prediction with Fully Convolutional Residual Networks](https://arxiv.org/pdf/1606.00373v2.pdf)
-
-You can also find helpful implementations in the papers with code depth estimation task.
 
 You can use the trained model hosted on [Hugging Face Hub](https://huggingface.co/spaces/keras-io/Monocular-Depth-Estimation)
 and try the demo on [Hugging Face Spaces](https://huggingface.co/keras-io/monocular-depth-estimation).
