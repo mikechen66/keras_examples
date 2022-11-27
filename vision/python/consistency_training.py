@@ -13,41 +13,42 @@ change, and blurring). So, naturally, there arises a question of why. As discuss
 [A Fourier Perspective on Model Robustness in Computer Vision]
 (https://arxiv.org/pdf/1906.08988.pdf)), there's no reason for deep learning models to 
 be robust against such shifts. Standard model training procedures(such as standard image 
-classification training workflows) *don't* enable a model to learn beyond what
-is fed to it in the form of training data.
+classification training workflows) don't enable a model to learn beyond what is fed to 
+it in the form of training data.
 
-In this example, we will be training an image classification model enforcing a sense of 
-consistency inside it by doing the following:
+In this example, we train an image classification model enforcing a sense of consistency 
+inside it by doing the following:
 
 * Train a standard image classification model.
 * Train an _equal or larger_ model on a noisy version of the dataset (augmented using
   [RandAugment](https://arxiv.org/abs/1909.13719)).
 * To do this, we will first obtain predictions of the previous model on the clean images
   of the dataset.
-* We will then use these predictions and train the second model to match these
-  predictions on the noisy variant of the same images. This is identical to the workflow 
-  of [*Knowledge Distillation*](https://keras.io/examples/vision/knowledge_distillation/) 
-  but since the student model is equal or larger in size this process is also referred 
-  to as Self-Training.
+* Use these predictions and train the second model to match these predictions on the 
+  noisy variant of the same images. This is identical to the workflow of [*Knowledge 
+  Distillation*](https://keras.io/examples/vision/knowledge_distillation/) but since 
+  the student model is equal or larger in size this process is also referred to as 
+  Self-Training.
 
-This overall training workflow finds its roots in works like 
+This overall training workflow finds its roots in the works as follows. 
 
 [FixMatch](https://arxiv.org/abs/2001.07685),
 [Unsupervised Data Augmentation for Consistency Training](https://arxiv.org/abs/1904.12848), 
 [Noisy Student Training](https://arxiv.org/abs/1911.04252). 
 
-Since this training process encourages a model yield consistent predictions for clean as 
-well as noisy images, it's often referred to as consistency training or training with 
-consistency regularization*. Although the example focuses on using consistency training to 
-enhance the robustness of models to common corruptions this example can serve a template 
-for performing _weakly supervised learning_.
+Since this training process encourages a model yield consistent predictions for clean and
+noisy images, it's often referred to as consistency training or training with consistency 
+regularization. Although the example focuses on using consistency training to enhance the 
+robustness of models to common corruptions this example can serve a template to perform
+ _weakly supervised learning_.
 
-This example requires TensorFlow 2.4 or higher, as well as TensorFlow Hub and TensorFlow
-Models. Users have three options to use the package of tf-models-official in case any one
-method could not be accessed. 
+The example requires TensorFlow 2.4 or higher, TensorFlow Hub and TensorFlow Models. Users 
+have three options to use the package of tf-models-official in case any one method could 
+not be failed. 
 
-Option 1. Istall the packakge by shell
+Option 1. Istall the packakge by shell (in Miniconda)
 
+$ conda intall pip
 $ pip install -q tf-models-official 
 $ pip install -q tensorflow-addons
 
@@ -78,23 +79,21 @@ Option 3. Directly adopt augment script
 1).Copy augment.py from TF2.8 to current working directory
 
 2).Adopt the following import
-import: 
 from augment import RandAugment
 
 The major procedures are listed as follows. 
 
 ## Create TensorFlow Dataset objects
 
-For training the teacher model, we will only be using two geometric augmentation transforms: 
-random horizontal flip and random crop.
+To train the teacher model, we only use two geometric augmentation transforms: random
+ horizontal flip and random crop.
 
-We make sure train_clean_ds and train_noisy_ds are shuffled using the same seed to
-ensure their orders are exactly the same. This will be helpful during training the
-student model.
+To enable train_clean_ds and train_noisy_ds are shuffled using the same seed to ensure 
+their orders are exactly the same. It is helpful during training the student model.
 
 ## Define a model building utility function
 
-We now define our model building utility. Our model is based on the [ResNet50V2 architecture]
+To define our model building utility. The model is based on the [ResNet50V2 architecture]
 (https://arxiv.org/abs/1603.05027).
 
 In the interest of reproducibility, we serialize the initial random weights of the teacher 
@@ -102,47 +101,47 @@ network.
 
 ## Train the teacher model
 
-As noted in Noisy Student Training, if the teacher model is trained with *geometric
-ensembling* and when the student model is forced to mimic that, it leads to better
-performance. The original work uses [Stochastic Depth](https://arxiv.org/abs/1603.09382)
-and [Dropout](https://jmlr.org/papers/v15/srivastava14a.html) to bring in the ensembling
-part but for this example, we will use [Stochastic Weight Averaging](https://arxiv.org/abs/1803.05407)
-(SWA) which also resembles geometric ensembling.
+As noted in Noisy Student Training, it leads to better performance if the teacher model 
+is trained with geometric ensembling and when the student model is forced to mimic that,  
+The original work uses [Stochastic Depth](https://arxiv.org/abs/1603.09382) and [Dropout]
+(https://jmlr.org/papers/v15/srivastava14a.html) to bring in the ensemblingpart but for 
+the example, we use [Stochastic Weight Averaging](https://arxiv.org/abs/1803.05407)(SWA)
+which also resembles geometric ensembling.
 
 ## Define a self-training utility
 
-For this part, we will borrow the `Distiller` class from [this Keras Example]
+For this part, we will borrow the Distiller class from [this Keras Example]
 (https://keras.io/examples/vision/knowledge_distillation/).
 # Majority of the code is taken from:
 # https://keras.io/examples/vision/knowledge_distillation/
 
-The only difference in this implementation is the way loss is being calculated. **Instead
-of weighted the distillation loss and student loss differently we are taking their average 
-following Noisy Student Training**.
+The only difference in this implementation is the way that the  loss is being calculated. 
+Instead of weighted the distillation loss and student loss differently that we are taking 
+their average following Noisy Student Training.
 
 ## Assess the robustness of the models
 
-A standard benchmark of assessing the robustness of vision models is to record their perfor-
-mance on corrupted datasets like ImageNet-C and CIFAR-10-C both of which were proposed in 
-[Benchmarking Neural Network Robustness to Common Corruptions and Perturbations]
-(https://arxiv.org/abs/1903.12261). For this example, we will be using the
-CIFAR-10-C dataset which has 19 different corruptions on 5 different severity levels. To
-assess the robustness of the models on this dataset, we will do the following:
+A standard benchmark of assessing to the robustness of vision models is to record their 
+performance on corrupted datasets such as ImageNet-C and CIFAR-10-C that were proposed 
+in [Benchmarking Neural Network Robustness to Common Corruptions and Perturbations]
+(https://arxiv.org/abs/1903.12261). For this example, we will be using the CIFAR-10-C 
+dataset which has 19 different corruptions on 5 different severity levels. To assess 
+the robustness of the models on this dataset, we will do the following:
 
 * Run the pre-trained models on the highest level of severities and obtain the top-1 
   accuracies.
 * Compute the mean top-1 accuracy.
 
-For the purpose of this example, we won't be going through these steps. This is why we
-trained the models for only 5 epochs. You can check out [this repository]
+For the purpose of this example, we will not be going through these steps. This is why 
+we trained the models for only 5 epochs. You can carefully check out [this repository]
 (https://github.com/sayakpaul/Consistency-Training-with-Supervision) that demonstrates 
 the full-scale training experiments and also the aforementioned assessment. The figure 
 below presents an executive summary of that assessment:
 
 ![](https://i.ibb.co/HBJkM9R/image.png)
 
-**Mean Top-1** results stand for the CIFAR-10-C dataset and **Test Top-1** results stand
-for the CIFAR-10 test set. It's clear that consistency training has an advantage on not
+Mean Top-1 results stand for the CIFAR-10-C dataset and Test Top-1 results stand for 
+the CIFAR-10 test set. It's clear that consistency training has an advantage on not
 only enhancing the model robustness but also on improving the standard test performance.
 """
 
@@ -173,11 +172,11 @@ RESIZE_TO = 96
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
 
 val_samples = 49500
-new_train_x, new_y_train = x_train[: val_samples + 1], y_train[: val_samples + 1]
+new_train_x, new_train_y = x_train[: val_samples + 1], y_train[: val_samples + 1]
 val_x, val_y = x_train[val_samples:], y_train[val_samples:]
 
 
-## Create TensorFlow `Dataset` objects
+## Create TensorFlow Dataset objects
 
 # Initialize RandAugment object.
 augmenter = RandAugment(num_layers=2, magnitude=9)
@@ -199,11 +198,11 @@ def preprocess_test(image, label):
     return image, label
 
 
-train_ds = tf.data.Dataset.from_tensor_slices((new_train_x, new_y_train))
+train_ds = tf.data.Dataset.from_tensor_slices((new_train_x, new_train_y))
 validation_ds = tf.data.Dataset.from_tensor_slices((val_x, val_y))
 test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test))
 
-# This dataset will be used to train the first model.
+# The dataset will be used to train the first model.
 train_clean_ds = (
     train_ds.shuffle(BATCH_SIZE * 10, seed=42)
     .map(lambda x, y: (preprocess_train(x, y, noisy=False)), num_parallel_calls=AUTO)
@@ -231,7 +230,7 @@ test_ds = (
     .prefetch(AUTO)
 )
 
-# This dataset will be used to train the second model.
+# The dataset will be used to train the second model.
 consistency_training_ds = tf.data.Dataset.zip((train_clean_ds, train_noisy_ds))
 
 
@@ -291,7 +290,7 @@ SWA = tfa.optimizers.SWA
 teacher_model = get_training_model()
 teacher_model.load_weights("initial_teacher_model.h5")
 teacher_model.compile(
-    # Notice that we are wrapping our optimizer within SWA
+    # Note that we are wrapping the optimizer within SWA
     optimizer=SWA(tf.keras.optimizers.Adam()),
     loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
     metrics=["accuracy"],
@@ -359,7 +358,7 @@ class SelfTrainer(tf.keras.Model):
         # Update weights
         self.optimizer.apply_gradients(zip(gradients, trainable_vars))
 
-        # Update the metrics configured in `compile()`
+        # Update the metrics configured in compile()
         self.compiled_metrics.update_state(
             y, tf.nn.softmax(student_predictions, axis=1)
         )
@@ -397,7 +396,7 @@ early_stopping = tf.keras.callbacks.EarlyStopping(
 # Compile and train the student model.
 self_trainer = SelfTrainer(student=get_training_model(), teacher=teacher_model)
 self_trainer.compile(
-    # Notice we are *not* using SWA here.
+    # Notice we are not using SWA here.
     optimizer="adam",
     metrics=["accuracy"],
     student_loss_fn=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
