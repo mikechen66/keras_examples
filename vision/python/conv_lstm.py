@@ -12,21 +12,19 @@ architectures bring together time series processing and computer vision by intro
 rent cell in a LSTM layer. In this example, we will explore the Convolutional LSTM model in an application 
 to next-frame prediction, the process of predicting what video frames come next given a series of past frames.
 
-Dataset Construction
+## Dataset Construction
 
 For this example, we will be using the [Moving MNIST](http://www.cs.toronto.edu/~nitish/unsupervised_video/)
-dataset.
-
-We will download the dataset and then construct and preprocess training and validation sets.
+dataset. We will download the dataset and then construct and preprocess training and validation sets.
 
 For next-frame prediction, our model will be using a previous frame, which we'll call 'f_n', to predict a new 
-frame, called 'f_(n + 1)'. To allow the model to create these predictions, we'll need to process the data such 
-that we have "shifted" inputs and outputs, where the input data is frame 'x_n', being used to predict frame 
+frame, called 'f_(n + 1)'. To allow the model to create these predictions, we'll need to process the data so  
+that we have shifted inputs and outputs, where the input data is frame 'x_n', being used to predict frame 
 'y_(n + 1)'.
 
-Data Visualization
+## Data Visualization
 
-Our data consists of sequences of frames, each of which are used to predict the upcoming frame. Let's take a 
+The data consist of sequences of frames, each of which are used to predict the upcoming frame. Let's take a 
 look at some of these sequential frames.
 
 ## Model Construction
@@ -36,13 +34,13 @@ To build a Convolutional LSTM model, we will use the 'ConvLSTM2D' layer, which w
 
 ## Model Training
 
-With our model and data constructed, we can now train the model.
+With both the model and data constructed, we can train the model.
 
 ## Frame Prediction Visualizations
 
-With our model constructed and trained, we can generate some example frame predictions based on a new video.
-We'll pick a random example from the validation set and then choose the first ten frames from them. From there, 
-we can allow the model to predict 10 new frames, which we can compare to the ground truth frame predictions.
+With the model constructed and trained, we can generate some example frame predictions based on a new video.
+We pick a random example from the validation set and then choose the first ten frames from them. From there, 
+we allow the model to predict 10 new frames, which we can compare to the ground truth frame predictions.
 
 ## Predicted Videos
 
@@ -78,7 +76,7 @@ dataset = np.load(fpath)
 
 # Swap the axes representing the number of frames and number of data samples.
 dataset = np.swapaxes(dataset, 0, 1)
-# We'll pick out 1000 of the 10000 total examples and use those.
+# We'll pick out 1000 of the 10000 total examples.
 dataset = dataset[:1000, ...]
 # Add a channel dimension since the images are grayscale.
 dataset = np.expand_dims(dataset, axis=-1)
@@ -95,13 +93,12 @@ val_dataset = dataset[val_index]
 train_dataset = train_dataset / 255
 val_dataset = val_dataset / 255
 
-# We'll define a helper function to shift the frames, where
-# 'x' is frames 0 to n - 1, and 'y' is frames 1 to n.
+# We'll define a helper function to shift the frames, where 'x' is frames 
+# 0 to n - 1, and 'y' is frames 1 to n.
 def create_shifted_frames(data):
     x = data[:, 0 : data.shape[1] - 1, :, :]
     y = data[:, 1 : data.shape[1], :, :]
     return x, y
-
 
 # Apply the processing function to the datasets.
 x_train, y_train = create_shifted_frames(train_dataset)
@@ -134,8 +131,8 @@ plt.show()
 # Construct the input layer with no definite frame size.
 inp = layers.Input(shape=(None, *x_train.shape[2:]))
 
-# We will construct 3 'ConvLSTM2D' layers with batch normalization,
-# followed by a 'Conv3D' layer for the spatiotemporal outputs.
+# Construct 3 'ConvLSTM2D' layers with batch normalization, followed 
+# by a 'Conv3D' layer for the spatio temporal outputs.
 x = layers.ConvLSTM2D(
     filters=64,
     kernel_size=(5, 5),
@@ -232,7 +229,7 @@ for idx, ax in enumerate(axes[1]):
 plt.show()
 
 
-## Predicted Videos
+## Predict the videos
 
 # Select a few random examples from the dataset.
 examples = val_dataset[np.random.choice(range(len(val_dataset)), size=5)]
