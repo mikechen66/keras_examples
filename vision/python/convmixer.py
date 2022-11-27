@@ -11,24 +11,24 @@ Vision Transformers (ViT[Dosovitskiy et al.](https://arxiv.org/abs/1612.00593)) 
 patches from the input images, linearly project them, and then apply the Transformer([Vaswani 
 et al.](https://arxiv.org/abs/1706.03762)) blocks. The application of ViTs to image recognition 
 tasks is quickly becoming a promising area of research, because ViTs eliminate the need to have 
-strong inductive biases (such as convolutions) for modeling  locality. This presents them as 
-a general computation primititive capable of learning  just from the training data with as 
-minimal inductive priors as possible. ViTs yield  great downstream performance when trained 
-with proper regularization, data augmentation, and relatively large datasets.
+strong inductive biases (such as convolutions) for modeling locality. This presents them as a 
+general computation primititive capable of learning just from the training data with as inimal 
+inductive priors as possible. ViTs yield  great downstream performance when trained with proper 
+regularization, data augmentation and relatively large datasets.
 
-In the [Patches Are All You Need](https://openreview.net/pdf?id=TVHS5Y4dNvM) paper (note: at 
+In the [Patches Are All You Need](https://openreview.net/pdf?id=TVHS5Y4dNvM) paper). Note: at 
 the time of writing, it is a submission to the ICLR 2022 conference), the authors extend the 
-idea of using patches to train an all-convolutional network and demonstrate competitive 
-results. Their architecture namely **ConvMixer** uses recipes from the recent isotrophic 
-architectures like ViT, MLP-Mixer ([Tolstikhin et al.](https://arxiv.org/abs/2105.01601)), 
-such as using the same depth and resolution across different layers in the network, residual 
-connections, and so on.
+idea of using patches to train an all-convolutional network and demonstrate competitive result. 
+Their architecture namely ConvMixer uses recipes from the recent isotrophic architectures like 
+ViT, MLP-Mixer ([Tolstikhin et al.](https://arxiv.org/abs/2105.01601)), such as using the same 
+depth and resolution across different layers in the network, residual connections, and so on.
 
 In this example, we will implement the ConvMixer model and demonstrate its performance on the 
 CIFAR-10 dataset. To use the AdamW optimizer, we need to install TensorFlow Addons:
 
 shell
-pip install -U -q tensorflow-addons
+$ conda intall pip (ignore it if installed)
+$ pip install -U -q tensorflow-addons
 
 Please have a look at the major section explainations as follows.
 
@@ -39,15 +39,15 @@ of ConvMixer, we will not use other training-specific elements like RandAugment 
 (https://arxiv.org/abs/1909.13719)). If you are interested in learning more about those details, 
 please refer to the [original paper](https://openreview.net/pdf?id=TVHS5Y4dNvM).
 
-## Prepare `tf.data.Dataset` objects
+## Prepare tf.data.Dataset objects
 
 Our data augmentation pipeline is different from what the authors used for the CIFAR-10 dataset, 
 which is fine for the purpose of the example.
 
 ## ConvMixer utilities
 
-The model used in this experiment is termed as **ConvMixer-256/8** where 256 denotes the number 
-of channels and 8 denotes the depth. The resulting model only has 0.8 million parameters.
+The model used in this experiment is termed as ConvMixer-256/8 where 256 denotes the number of 
+channels and 8 denotes the depth. The resulting model only has 0.8 million parameters.
 
 ## ConvMixer utilities
 
@@ -60,18 +60,15 @@ ConvMixer is very similar to the MLP-Mixer, model with the following key differe
 *Instead of using fully-connected layers, it uses standard convolution layers.
 *Instead of LayerNorm (which is typical for ViTs and MLP-Mixers), it uses BatchNorm.
 
-Two types of convolution layers are used in ConvMixer. (1): Depthwise convolutions, for mixing 
-spatial locations of the images, (2): Pointwise convolutions (which follow the depthwise convs), 
+Two types of convolution layers are used in ConvMixer. (1).Depthwise convolutions, for mixing 
+spatial locations of the images, (2).Pointwise convolutions (which follow the depthwise convs), 
 for mixing channel-wise information across the patches. Another keypoint is the use of larger 
 kernel sizes to allow a larger receptive field.
-
-The model used in this experiment is termed as **ConvMixer-256/8** where 256 denotes the number 
-of channels and 8 denotes the depth. The resulting model only has 0.8 million parameters.
 
 ## Model training and evaluation utility
 
 # Code reference:
-# https://keras.io/examples/vision/image_classification_with_vision_transformer/.
+# https://keras.io/examples/vision/image_classification_with_vision_transformer/
 
 ## Train and evaluate model
 
@@ -79,23 +76,21 @@ The gap in training and validation performance can be mitigated by using additio
 zation techniques. Nevertheless, being able to get to ~83% accuracy within 10 epochs with 0.8 
 million parameters is a strong result.
 
-## Visualizing the internals of ConvMixer
+## Visualize the internals of ConvMixer
 
-We can visualize the patch embeddings and the learned convolution filters. Recall that each 
-patch embedding and intermediate feature map have the same number of channels (256 in this case). 
-This will make our visualization utility easier to implement.
+We visualize the patch embeddings and the learned convolution filters. Recall that each patch 
+embedding and intermediate feature map have the same number of channels (256 in the case). It
+will make our visualization utility easier to implement.
 
-# Code reference: https://bit.ly/3awIRbP.
+Code reference: https://bit.ly/3awIRbP.
 
 Even though we did not train the network to convergence, we can notice that different patches 
-show different patterns. Some share similarity with others while some are very different. These 
-visualizations are more salient with larger image sizes.
+show different patterns. Some share similarity with others while others are very different. 
+These visualizations are more salient with larger image sizes.
 
-Similarly, we can visualize the raw convolution kernels. This can help us understand the patterns 
-to which a given kernel is receptive.
-
-We see that different filters in the kernel have different locality spans, and this pattern
-is likely to evolve with more training.
+Similarly, we can visualize the raw convolution kernels. It can helf to understand the patterns  
+to which a given kernel is receptive. We see that different filters in the kernel have different 
+locality spans, and this pattern is likely to evolve with more training.
 
 ## Final notes
 
@@ -145,7 +140,7 @@ print(f"Validation data samples: {len(x_val)}")
 print(f"Test data samples: {len(x_test)}")
 
 
-## Prepare 'tf.data.Dataset' objects
+## Prepare tf.data.Dataset objects
 
 image_size = 32
 auto = tf.data.AUTOTUNE
@@ -189,7 +184,6 @@ def conv_stem(x, filters: int, patch_size: int):
 
 
 def conv_mixer_block(x, filters: int, kernel_size: int):
-    # Depthwise convolution.
     x0 = x
     x = layers.DepthwiseConv2D(kernel_size=kernel_size, padding="same")(x)
     x = layers.Add()([activation_block(x), x0])  # Residual.
@@ -266,11 +260,11 @@ conv_mixer_model = get_conv_mixer_256_8()
 history, conv_mixer_model = run_experiment(conv_mixer_model)
 
 
-## Visualizing the internals of ConvMixer
+## Visualize the internals of ConvMixer
 
 def visualization_plot(weights, idx=1):
-    # First, apply min-max normalization to the
-    # given weights to avoid isotrophic scaling.
+    # First, apply min-max normalization to the given 
+    # weights to avoid isotrophic scaling.
     p_min, p_max = weights.min(), weights.max()
     weights = (weights - p_min) / (p_max - p_min)
 
@@ -301,7 +295,7 @@ for i, layer in enumerate(conv_mixer_model.layers):
         if layer.get_config()["kernel_size"] == (5, 5):
             print(i, layer)
 
-idx = 26  # Taking a kernel from the middle of the network.
+idx = 26  # Take a kernel from the middle of the network.
 
 kernel = conv_mixer_model.layers[idx].get_weights()[0]
 kernel = np.expand_dims(kernel.squeeze(), axis=2)
