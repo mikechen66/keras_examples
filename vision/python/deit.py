@@ -565,8 +565,8 @@ class DeiT(keras.Model):
  but the _output_shapes attribute specifies shapes for 4 outputs. 
  Output shapes may be inaccurate.
 """
-# bit_teacher_flowers = keras.models.load_model("/home/mike/datasets/bit_teacher_flowers")
-bit_teacher_flowers = keras.models.load_model("bit_teacher_flowers")
+bit_teacher_flowers = keras.models.load_model("/home/mike/datasets/bit_teacher_flowers")
+
 
 ## Train through distillation
 
