@@ -12,12 +12,10 @@ models. However, as investigated in [Fixing the train-test resolution discrepanc
 (https://arxiv.org/abs/1906.06423) (Touvron et al.), the practice leads to suboptimal performance. 
 Data augmentation is an indispensable part of the training process of deep neural networks. For 
 vision models, we typically use random resized crops during training and center crops during 
-inference. This introduces a discrepancy in the object sizes seen during training and inference.
+inference. It introduces a discrepancy in the object sizes seen during training and inference.
 As shown by Touvron et al., if we can fix this discrepancy, we can significantly boost model 
-performance.
-
-In this example, we implement the **FixRes** techniques introduced by Touvron et al. to fix this 
-discrepancy.
+performance. In the example, we implement the FixRes techniques introduced by Touvron et al. to 
+fix the discrepancy.
 
 ## Data preprocessing utilities
 
@@ -26,17 +24,16 @@ We create three datasets:
 1. A dataset with a smaller resolution - 128x128.
 2. Two datasets with a larger resolution - 224x224.
 
-We will apply different augmentation transforms to the larger-resolution datasets.
-
-The idea of FixRes is to first train a model on a smaller resolution dataset and then fine-tune
-it on a larger resolution dataset. The simple effective recipe leads to non-trivial performance
-improvements. Please refer to the [original paper](https://arxiv.org/abs/1906.06423) for results.
+We will apply different augmentation transforms to the larger-resolution datasets. The idea of 
+FixRes is to first train a model on a smaller resolution dataset and then fine-tune it on a larger 
+resolution dataset. The simple effective recipe leads to non-trivial performance improvements. 
+Please refer to the [original paper](https://arxiv.org/abs/1906.06423) for results.
 
 # Reference: https://github.com/facebookresearch/FixRes/blob/main/transforms_v2.py.
 
 ## Model training utilities
 
-We train multiple variants of ResNet50V2([He et al.](https://arxiv.org/abs/1603.05027)):
+# Train multiple variants of ResNet50V2([He et al.](https://arxiv.org/abs/1603.05027)):
 
 1. On the smaller resolution dataset (128x128). It will be trained from scratch.
 2. Then fine-tune the model from 1 on the larger resolution (224x224) dataset.
@@ -44,7 +41,7 @@ We train multiple variants of ResNet50V2([He et al.](https://arxiv.org/abs/1603.
 
 As a reminder, the larger resolution datasets differ in terms of their augmentation transforms.
 
-### Freeze all the layers except for the final Batch Normalization layer
+# Freeze all the layers except for the final Batch Normalization layer
 
 For fine-tuning, we train only two layers:
 
@@ -52,25 +49,19 @@ For fine-tuning, we train only two layers:
 *The classification layer.
 
 We are unfreezing the final Batch Normalization layer to compensate for the change in activation 
-statistics before the global average pooling layer. As shown in [the paper]
-(https://arxiv.org/abs/1906.06423), unfreezing the final Batch Normalization layer is enough.
-
-For a comprehensive guide on fine-tuning models in Keras, refer to [this tutorial]
-(https://keras.io/guides/transfer_learning/).
+statistics before the global average pooling layer. As shown in [the paper] unfreezing the final 
+Batch Normalization layer is enough https://arxiv.org/abs/1906.06423). For a comprehensive guide 
+on fine-tuning models in Keras, refer to [this tutorial](https://keras.io/guides/transfer_learning/).
 
 ## Experiment 
 
-1.Train on 128x128 and then fine-tune on 224x224
-2.Train a model on 224x224 resolution from scratch
+We train another model from scratch on the larger resolution dataset. Recall the augmentation 
+transforms used in this dataset are different from before. As we can notice from the above cells, 
+FixRes leads to a better performance. Another advantage of FixRes is the improved total training 
+time and reduction in GPU memory usage. 
 
-We train another model from scratch on the larger resolution dataset. Recall that the augmentation 
-transforms used in this dataset are different from before.
-
-As we can notice from the above cells, FixRes leads to a better performance. Another advantage of 
-FixRes is the improved total training time and reduction in GPU memory usage. FixRes is model 
-agnostic, you can use it on any image classification model to potentially boost performance.
-
-You can find more results [here](https://tensorboard.dev/experiment/BQOg28w0TlmvuJYeqsVntw) that 
+FixRes is model agnostic, you can use it on any image classification model to potentially boost 
+performance. Please see [here](https://tensorboard.dev/experiment/BQOg28w0TlmvuJYeqsVntw) that 
 were gathered by running the same code with different random seeds.
 """
 
@@ -84,8 +75,7 @@ tfds.disable_progress_bar()
 import matplotlib.pyplot as plt
 
 
-## Load the `tf_flowers` dataset
-
+## Load the tf_flowers dataset
 
 train_dataset, val_dataset = tfds.load(
     "tf_flowers", split=["train[:90%]", "train[90%:]"], as_supervised=True
@@ -126,7 +116,6 @@ def preprocess_initial(train, image_size):
                 use_image_if_no_bounding_boxes=True,
             )
             image = tf.slice(image, begin, size)
-
             image.set_shape([None, None, channels])
             image = tf.image.resize(image, [image_size, image_size])
             image = tf.image.random_flip_left_right(image)
@@ -195,12 +184,8 @@ initial_val_dataset = make_dataset(val_dataset, train=False, image_size=smaller_
 finetune_train_dataset = make_dataset(train_dataset, train=True, image_size=bigger_size)
 finetune_val_dataset = make_dataset(val_dataset, train=False, image_size=bigger_size)
 
-vanilla_train_dataset = make_dataset(
-    train_dataset, train=True, image_size=bigger_size, fixres=False
-)
-vanilla_val_dataset = make_dataset(
-    val_dataset, train=False, image_size=bigger_size, fixres=False
-)
+vanilla_train_dataset = make_dataset(train_dataset, train=True, image_size=bigger_size, fixres=False)
+vanilla_val_dataset = make_dataset(val_dataset, train=False, image_size=bigger_size, fixres=False)
 
 
 ## Visualize the datasets
@@ -285,13 +270,14 @@ smaller_res_model = train_and_evaluate(
 )
 
 
-#Freeze all the layers except for the final Batch Normalization layer
+# Freeze all the layers except for the final Batch Normalization layer
 for layer in smaller_res_model.layers[2].layers:
     layer.trainable = False
 
 smaller_res_model.layers[2].get_layer("post_bn").trainable = True
 
-epochs = 10
+# epochs = 10
+epochs = 5
 
 # Use a lower learning rate during fine-tuning.
 bigger_res_model = train_and_evaluate(
@@ -305,7 +291,8 @@ bigger_res_model = train_and_evaluate(
 
 ## Experiment 2: Train a model on 224x224 resolution from scratch
 
-epochs = 30
+# epochs = 30
+epochs = 10
 
 vanilla_bigger_res_model = get_training_model()
 vanilla_bigger_res_model = train_and_evaluate(
