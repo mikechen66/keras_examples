@@ -39,35 +39,29 @@ We use the DIV2K Dataset, a prominent single-image super-resolution dataset with
 with various sorts of degradations, divided into 800 images for training, 100 images for validation, and 
 100 images for testing. We use 4x bicubic downsampled images as our "low quality" reference.
 
-## Prepare a `tf.Data.Dataset` object
+## Prepare a tf.Data.Dataset object
 
 We augment the training data with random horizontal flips and 90 rotations. As low resolution images, we 
 use 24x24 RGB input patches.
 
 ## Build the model
 
-In the paper, the authors train three models: EDSR, MDSR, and a baseline model. In this code example,
-we only train the baseline model.
-
-### Comparison with model with three residual blocks
-
-The residual block design of EDSR differs from that of ResNet. Batch normalization layers have been removed 
-(together with the final ReLU activation): since batch normalization layers normalize the features, they hurt 
-output value range flexibility. It is thus better to remove them. Further, it also helps reduce the amount 
-of GPU RAM required by the model, since the batch normalization layers consume the same amount of memory as 
-the preceding convolutional layers.
+In the paper, the authors train three models: EDSR, MDSR, and a baseline model. In this code example, we 
+only train the baseline model. The residual block design of EDSR differs from that of ResNet. Batch norm
+layers have been removed (together with the final ReLU activation): since batch norm layers normalize the 
+features, they hurt output value range flexibility. It is thus better to remove them. Further, it also helps 
+reduce the amount of GPU RAM required by the model, since the batch normalization layers consume the same 
+amount of memory as the preceding convolutional layers.
 
 <img src="https://miro.medium.com/max/1050/1*EPviXGqlGWotVtV2gqVvNg.png" width="500" />
 
 ## Final remarks
 
-In this example, we implemented the EDSR model (Enhanced Deep Residual Networks for Single Image Super
-Resolution). You could improve the model accuracy by training the model for more epochs, as well astraining 
-the model with a wider variety of inputs with mixed downgrading factors, so as to be able to handle a greater 
-range of real-world images.
-
-You could also improve on the given baseline EDSR model by implementing EDSR+, or MDSR( Multi-Scale super
-resolution) and MDSR+, which were proposed in the same paper.
+In this example, we implemented the EDSR model. You could improve the model accuracy by training the model 
+for more epochs, as well astraining the model with a wider variety of inputs with mixed downgrading factors 
+to be able to handle a greater range of real-world images. You could also improve on the given baseline EDSR 
+model by implementing EDSR+ or MDSR (Multi-Scale super resolution) and MDSR+, which were proposed in the same 
+paper.
 """
 
 
