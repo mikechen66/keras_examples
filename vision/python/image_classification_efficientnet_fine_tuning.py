@@ -8,40 +8,36 @@ Description: Use EfficientNet with weights pre-trained on imagenet for Stanford 
 ## Introduction: what is EfficientNet
 
 EfficientNet, first introduced in [Tan and Le, 2019](https://arxiv.org/abs/1905.11946) is among the 
-most efficient models (i.e. requiring least FLOPS for inference) that  reaches State-of-the-Art 
-accuracy on both imagenet and common image classification transfer learning tasks.
+most efficient models (requiring least FLOPS for inference) that reaches State-of-the-Art accuracy 
+on both Imagenet and common image classification transfer learning tasks.
 
 The smallest base model is similar to [MnasNet](https://arxiv.org/abs/1807.11626), which reached 
 near-SOTA with a significantly smaller model. By introducing a heuristic way to scale the model, 
 EfficientNet provides a family of models(B0 to B7) that represents a good combination of efficiency 
-and accuracy on a variety of scales. Such a scaling heuristics (compound-scaling, details see [Tan 
-and Le, 2019] (https://arxiv.org/abs/1905.11946)) allows the efficiency-oriented base model (B0) to 
-surpass  models at every scale, while avoiding extensive grid-search of hyperparameters.
+and accuracy on a variety of scales. Such a scaling heuristics (compound-scaling, details see the 
+above-mentioned paper allows the efficiency-oriented base model (B0) to surpass  models at every 
+scale, while avoiding extensive grid-search of hyperparameters.
 
 A summary of the latest updates on the model is available at the following weblink where various 
 augmentation schemes and semi-supervised learning approaches are applied to further improve the 
-imagenet performance of the models. These extensions of the model can be used by updating weights 
-without changing model architecture. 
-(https://github.com/tensorflow/tpu/tree/master/models/official/efficientnet),
+Imagenet performance of the models. Its extensions can be used by updating weights without changing 
+model architecture(https://github.com/tensorflow/tpu/tree/master/models/official/efficientnet),
 
 ## B0 to B7 variants of EfficientNet
 
-*(This section provides details on "compound scaling", and can be skipped if you're interested in 
-using the models)*
+This section provides details on "compound scaling", and can be skipped if you're interested in 
+using the models).Based on the paper people have the impression that EfficientNet is a continuous 
+family of models created by arbitrarily choosing scaling factor in as Eq.(3) of the paper. However, 
+choice of resolution, depth and width are also restricted by many factors:
 
-Based on the [original paper](https://arxiv.org/abs/1905.11946) people may have the impression that 
-EfficientNet is a continuous family of models created by arbitrarily choosing scaling factor in as 
-Eq.(3) of the paper.  However, choice of resolution, depth and width are also restricted by many 
-factors:
-
--Resolution: Resolutions not divisible by 8, 16, etc. cause zero-padding near boundaries of some 
+-Resolution: Resolutions not divisible by 8, 16, etc. bcause zero-padding near boundaries of some 
 layers which wastes computational resources. This especially applies to smaller variants of the 
 model, hence the input resolution for B0 and B1 are chosen as 224 and 240.
 
 -Depth and width: The building blocks of EfficientNet demands channel size to be multiples of 8.
 
--Resource limit: Memory limitation bottleneck resolution when depth and width can still increase. 
- In the situation, increasing depth and/or width but keep resolution can still improve performance.
+-Resource limit: Memory bottleneck resolution when depth and width can still increase. In the 
+situation, increasing depth and/or width but keep resolution can still improve performance.
 
 As a result, depth, width and resolution of each variant of the EfficientNet models are hand-picked 
 and proven to produce good results, though they are significantly off from the compound scaling 
@@ -64,9 +60,8 @@ This model takes input images of shape (224, 224, 3), and the input data should 
 Norm is included as part of the model.
 
 Because training EfficientNet on ImageNet takes a large amount of resources and several techniques 
-that are not a part of the model architecture itself. Hence the Keras implementation by default 
-loads pre-trained weights obtained via training with [AutoAugment](https://arxiv.org/abs/1805.09501).
-
+that are not a part of the model architecture. Hence the Keras implementation by default loads 
+pre-trained weights obtained via training with [AutoAugment](https://arxiv.org/abs/1805.09501).
 For B0 to B7 base models, the input shapes are different. Here is a list of input shape expected 
 for each model:
 
@@ -81,28 +76,28 @@ for each model:
 | EfficientNetB6 | 528 |
 | EfficientNetB7 | 600 |
 
-When the model is intended for transfer learning, the Keras implementation provides a option to 
+When the model is intended for transfer learning, the Keras implementation provides an option to 
 remove the top layers:
-```
-model = EfficientNetB0(include_top=False, weights='imagenet')
-```
-This option excludes the final 'Dense' layer that turns 1280 features on the penultimate layer 
-into prediction of the 1000 ImageNet classes. Replacing the top layer with custom layers allows 
-using EfficientNet as a feature extractor in a transfer learning workflow.
 
-Another argument in the model constructor worth noticing is 'drop_connect_rate' which controls the 
+model = EfficientNetB0(include_top=False, weights='imagenet')
+
+This option excludes the final Dense layer that turns 1280 features on the penultimate layer into 
+prediction of the 1000 ImageNet classes. Replacing the top layer with custom layers allows using 
+EfficientNet as a feature extractor in a transfer learning workflow.
+
+Another argument in the model constructor worth noticing is drop_connect_rate which controls the 
 dropout rate responsible for [stochastic depth](https://arxiv.org/abs/1603.09382). This parameter 
 serves as a toggle for extra regularization in finetuning, but does not affect loaded weights. For 
-example, when stronger regularization is desired, try:
+example, when stronger regularization is desired, please have a try:
 
 ```python
 model = EfficientNetB0(weights='imagenet', drop_connect_rate=0.4)
 ```
 The default value is 0.2.
 
-## Example: EfficientNetB0 for Stanford Dogs.
+## Example: EfficientNet B0 for Stanford Dogs.
 
-EfficientNet is capable of a wide range of image classification tasks. his makes it a good model 
+EfficientNet is capable of a wide range of image classification tasks. This makes it a good model 
 for transfer learning. As an end-to-end example, we will show using pre-trained EfficientNetB0 on
 [Stanford Dogs](http://vision.stanford.edu/aditya86/ImageNetDogs/main.html) dataset.
 
@@ -118,23 +113,19 @@ This example requires TensorFlow 2.3 or above.
 To use TPU, the TPU runtime must match current running TensorFlow version. If there is a mismatch, 
 Please have a try:
 
-```python
 from cloud_tpu_client import Client
 c = Client()
 c.configure_tpu_version(tf.__version__, restart_type="always")
-```
 
-### Loading data
+## Loading data
 
 Here we load data from [tensorflow_datasets](https://www.tensorflow.org/datasets) (hereafter TFDS).
 Stanford Dogs dataset is provided in TFDS as [stanford_dogs]
 (https://www.tensorflow.org/datasets/catalog/stanford_dogs).
 
 It features 20,580 images that belong to 120 classes of dog breeds (12,000 for  training and 8,580 
-for testing).
-
-By simply changing `dataset_name` below, you may also try this notebook for other datasets in TFDS 
-such as: 
+for testing). By simply changing `dataset_name` below, you may also try this notebook for other 
+datasets in TFDS such as: 
 
 [cifar10](https://www.tensorflow.org/datasets/catalog/cifar10),
 [cifar100](https://www.tensorflow.org/datasets/catalog/cifar100),
@@ -147,15 +138,12 @@ transfer learning result is better for increased resolution even if input images
 For TPU: if using TFDS datasets,a [GCS bucket](https://cloud.google.com/storage/docs/key-terms#buckets)
 location is required to save the datasets. For example:
 
-```python
 tfds.load(dataset_name, data_dir="gs://example-bucket/datapath")
-```
 
 Also, both the current environment and the TPU service account have the following proper link to 
 the bucket. Alternatively, for small datasets you may try loading data into the memory and use 
-'tf.data.Dataset.from_tensor_slices()'.
+tf.data.Dataset.from_tensor_slices().
 (https://cloud.google.com/tpu/docs/storage-buckets#authorize_the_service_account)
-
 
 When the dataset include images with various size, we need to resize them into a shared size. The 
 Stanford Dogs dataset includes only images at least 200x200 pixels in size. Here we resize the 
@@ -163,30 +151,29 @@ images to the input size needed for EfficientNet.
 
 ## Data augmentation
 
-This `Sequential` model object can be used both as a part of the model we later build, and as a 
-function to preprocess data before feeding into the model. Using them as function makes it easy to 
-visualize the augmented images. Here we plot 9 examples of augmentation result of a given figure.
+The Sequential model object can be used both as a part of the model we later build, and as a function 
+to preprocess data before feeding into the model. Using them as function makes it easy to visualize 
+the augmented images. Here we plot 9 examples of augmentation result of a given figure.
 
 ## Prepare inputs
 
 Once verifying the input data and augmentation are working correctly, we prepare dataset for training. 
-The input data are resized to uniform 'IMG_SIZE'. The labels are put into one-hot (a.k.a. categorical) 
+The input data are resized to uniform IMG_SIZE. The labels are put into one-hot (a.k.a. categorical) 
 encoding. The dataset is batched.
 
-Note: `prefetch` and `AUTOTUNE` may in some situation improve performance, but depends on environment 
+Note: prefetch and AUTOTUNE may in some situation improve performance, but depends on environment 
 and the specific dataset used. See this [guide](https://www.tensorflow.org/guide/data_performance)
 for more information on data pipeline performance.
 
 ## Training a model from scratch
 
-We build an EfficientNetB0 with 120 output classes, that is initialized from scratch:
+We build an EfficientNet B0 with 120 output classes, that is initialized from scratch, Please note
+the accuracy will increase very slowly and may overfit.
 
-Note: the accuracy will increase very slowly and may overfit.
-
-Training the model is relatively fast (takes only 20 seconds per epoch on TPUv2 that is available on 
-Colab). This might make it sounds easy to simply train EfficientNet on any dataset wanted from scratch. 
-However, training EfficientNet on smaller datasets, especially those with lower resolution like CIFAR-100, 
-faces the significant challenge of overfitting.
+Training the model is relatively fast (takes only 20 seconds per epoch on TPU v2 that is available on 
+Colab). It might make it sounds easy to train EfficientNet on any dataset wanted from scratch. However, 
+training EfficientNet on smaller datasets, especially those with lower resolution like CIFAR-100, faces 
+the significant challenge of overfitting.
 
 Hence training from scratch requires very careful choice of hyperparameters and is difficult to find 
 suitable regularization. It would also be much more demanding in resources. Plotting the training and 
@@ -218,17 +205,17 @@ Such a situation can be demonstrated if choosing CIFAR-100 dataset instead, wher
 accuracy by about 10% to pass 80% on 'EfficientNetB0'. In such a case the convergence may take more than 
 50 epochs.
 
-A side note on freezing/unfreezing models: setting `trainable` of a `Model` will simultaneously set all 
-layers belonging to the `Model` to the same `trainable` attribute. Each layer is trainable only if both 
-the layer itself and the model containing it are trainable. Hence when we need to partially freeze
-/unfreeze a model, we need to make sure the `trainable` attribute of the model is set to `True`.
+A side note on freezing/unfreezing models: setting trainable of a Model will simultaneously set all layers 
+belonging to the `Model` to the same `trainable` attribute. Each layer is trainable only if both the layer 
+itself and the model containing it are trainable. Hence when we need to partially freeze/unfreeze a model, 
+we need to make sure the trainable attribute of the model is set to True.
 
-### Tips for fine tuning EfficientNet
+## Tips for fine tuning EfficientNet
 
 On unfreezing layers:
 
--The `BatchNormalization` layers need to be kept frozen((https://keras.io/guides/transfer_learning/)).
- If they are also turned to trainable, the first epoch after unfreezing will significantly reduce accuracy.
+-The BatchNormalization layers need to be kept frozen((https://keras.io/guides/transfer_learning/)).If 
+they are also turned to trainable, the first epoch after unfreezing will significantly reduce accuracy.
 -In some cases it may be beneficial to open up only a portion of layers instead of unfreezing all. This 
  will make fine tuning much faster when going to larger models like B7.
 -Each block needs to be all turned on or off. This is because the architecture includes a shortcut from 
@@ -256,28 +243,23 @@ computationally costly to reproduce, and require extra code; but the weights are
 form of TF checkpoint files. The model architecture has not changed, so loading the improved checkpoints 
 is possible.
 
-To use a checkpoint provided at [the official model repository], first download the checkpoint. As example, 
-here we download noisy-student version of B1:
-(https://github.com/tensorflow/tpu/tree/master/models/official/efficientnet)
+[The official model repository](https://github.com/tensorflow/tpu/tree/master/models/official/efficientnet)
+To use a checkpoint provided at, first download the checkpoint. As example, here we download noisy-student 
+version of B1:
 
-```
 !wget https://storage.googleapis.com/cloud-tpu-checkpoints/efficientnet\
        /noisystudent/noisy_student_efficientnet-b1.tar.gz
 !tar -xf noisy_student_efficientnet-b1.tar.gz
-```
 
 Then use the script [efficientnet_weight_update_util.py] to convert ckpt file to h5 file.
 (https://github.com/keras-team/keras/blob/master/keras/applications/efficientnet_weight_update_util.py) 
-```
+
 !python efficientnet_weight_update_util.py --model b1 --notop --ckpt \
         efficientnet-b1/model.ckpt --o efficientnetb1_notop.h5
-```
 
 When creating model, use the following to load new weight:
 
-```python
 model = EfficientNetB1(weights="efficientnetb1_notop.h5", include_top=False)
-```
 """
 
 
@@ -292,7 +274,7 @@ except ValueError:
     strategy = tf.distribute.MirroredStrategy()
 
 
-### Loading data
+## Load the data
 
 import tensorflow_datasets as tfds
 
@@ -304,13 +286,12 @@ dataset_name = "stanford_dogs"
 )
 NUM_CLASSES = ds_info.features["label"].num_classes
 
-
 size = (IMG_SIZE, IMG_SIZE)
 ds_train = ds_train.map(lambda image, label: (tf.image.resize(image, size), label))
 ds_test = ds_test.map(lambda image, label: (tf.image.resize(image, size), label))
 
 
-### Visualizing the data
+## Visualize the data
 
 # The following code shows the first 9 images with their labels.
 import matplotlib.pyplot as plt
@@ -320,7 +301,6 @@ def format_label(label):
     string_label = label_info.int2str(label)
     return string_label.split("-")[1]
 
-
 label_info = ds_info.features["label"]
 for i, (image, label) in enumerate(ds_train.take(9)):
     ax = plt.subplot(3, 3, i + 1)
@@ -329,7 +309,7 @@ for i, (image, label) in enumerate(ds_train.take(9)):
     plt.axis("off")
 
 
-### Data augmentation
+## Data augmentation
 
 # We can use the preprocessing layers APIs for image augmentation.
 
@@ -343,9 +323,7 @@ img_augmentation = Sequential(
         layers.RandomFlip(),
         layers.RandomContrast(factor=0.1),
     ],
-    name="img_augmentation",
-)
-
+    name="img_augmentation",)
 
 for image, label in ds_train.take(1):
     for i in range(9):
@@ -383,8 +361,7 @@ with strategy.scope():
 
     model = tf.keras.Model(inputs, outputs)
     model.compile(
-        optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"]
-    )
+        optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
 
 model.summary()
 
@@ -394,7 +371,6 @@ hist = model.fit(ds_train, epochs=epochs, validation_data=ds_test, verbose=2)
 
 import matplotlib.pyplot as plt
 
-
 def plot_hist(hist):
     plt.plot(hist.history["accuracy"])
     plt.plot(hist.history["val_accuracy"])
@@ -403,7 +379,6 @@ def plot_hist(hist):
     plt.xlabel("epoch")
     plt.legend(["train", "validation"], loc="upper left")
     plt.show()
-
 
 plot_hist(hist)
 
@@ -418,7 +393,7 @@ def build_model(num_classes):
     # Freeze the pretrained weights
     model.trainable = False
 
-    # Rebuild top
+    # Rebuild the top
     x = layers.GlobalAveragePooling2D(name="avg_pool")(model.output)
     x = layers.BatchNormalization()(x)
 
@@ -426,14 +401,12 @@ def build_model(num_classes):
     x = layers.Dropout(top_dropout_rate, name="top_dropout")(x)
     outputs = layers.Dense(NUM_CLASSES, activation="softmax", name="pred")(x)
 
-    # Compile
+    # Compile the model
     model = tf.keras.Model(inputs, outputs, name="EfficientNet")
     optimizer = tf.keras.optimizers.Adam(learning_rate=1e-2)
     model.compile(
-        optimizer=optimizer, loss="categorical_crossentropy", metrics=["accuracy"]
-    )
+        optimizer=optimizer, loss="categorical_crossentropy", metrics=["accuracy"])
     return model
-
 
 with strategy.scope():
     model = build_model(num_classes=NUM_CLASSES)
@@ -441,7 +414,6 @@ with strategy.scope():
 epochs = 25  # @param {type: "slider", min:8, max:80}
 hist = model.fit(ds_train, epochs=epochs, validation_data=ds_test, verbose=2)
 plot_hist(hist)
-
 
 def unfreeze_model(model):
     # We unfreeze the top 20 layers while leaving BatchNorm layers frozen
@@ -451,9 +423,7 @@ def unfreeze_model(model):
 
     optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4)
     model.compile(
-        optimizer=optimizer, loss="categorical_crossentropy", metrics=["accuracy"]
-    )
-
+        optimizer=optimizer, loss="categorical_crossentropy", metrics=["accuracy"])
 
 unfreeze_model(model)
 
