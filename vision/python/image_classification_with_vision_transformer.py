@@ -14,18 +14,18 @@ to sequences of image patches, without using convolution layers. This example re
 TensorFlow 2.4 or higher, as well as the following link which can be installed using the 
 following command.[TensorFlow Addons](https://www.tensorflow.org/addons/overview),
 
-```python
-pip install -U tensorflow-addons
-```
+$ conda install pip
+$ pip install -U tensorflow-addons
+
 ## Implement the patch encoding layer
 
-The 'PatchEncoder' layer will linearly transform a patch by projecting it into avector of 
-size `projection_dim`. In addition, it adds a learnable position embedding to the projected 
+The PatchEncoder layer will linearly transform a patch by projecting it into avector of 
+size projection_dim. In addition, it adds a learnable position embedding to the projected 
 vector.
 
 ## Build the ViT model
 
-It consists of multiple Transformer blocks, which use the 'layers.MultiHeadAttention' as 
+It consists of multiple Transformer blocks, which use the layers.MultiHeadAttention as 
 a self-attention mechanism applied to the sequence of patches. The Transformer blocks 
 produce a '[batch_size, num_patches, projection_dim]' tensor, which is processed via an
 classifier head with softmax to produce the final class probabilities output.
@@ -33,17 +33,17 @@ classifier head with softmax to produce the final class probabilities output.
 Unlike the technique described in the [paper](https://arxiv.org/abs/2010.11929), which 
 prepends a learnable embedding to the sequence of encoded patches to serve as the image 
 representation, all the outputs of the final Transformer block are reshaped with 
-'layers.Flatten()' and used as the image representation input to the classifier head.
+layers.Flatten() and used as the image representation input to the classifier head.
 
-Note that the 'layers.GlobalAveragePooling1D' layer could be used instead to aggregate 
-the outputs of the Transformer block, especially when the number of patches and the 
-projection dimensions are large.
+Note the layers.GlobalAveragePooling1D could be used instead to aggregate the outputs 
+of the Transformer block, especially when the number of patches and the projection 
+dimensions are large.
 
 After 100 epochs, the ViT model achieves around 55% accuracy and 82% top-5 accuracy on 
 the test data. These are not competitive results on the CIFAR-100 dataset, as a ResNet50V2 
 trained from scratch on the same data can achieve 67% accuracy.
 
-Note that the results reported in the the following weblink is achieved by pre-training 
+Please note the results reported in the the following weblink is achieved by pre-training 
 the ViT model using the JFT-300M dataset, then fine-tuning it on the target dataset. To 
 improve the model quality without pre-training, you can try to train the model for more 
 epochs, use a larger number of Transformer layers, resize the input images, change the 
@@ -88,8 +88,7 @@ projection_dim = 64
 num_heads = 4
 transformer_units = [
     projection_dim * 2,
-    projection_dim,
-]  # Size of the transformer layers
+    projection_dim,]  # Size of the transformer layers
 transformer_layers = 8
 mlp_head_units = [2048, 1024]  # Size of the dense layers of the final classifier
 
@@ -104,8 +103,7 @@ data_augmentation = keras.Sequential(
         layers.RandomRotation(factor=0.02),
         layers.RandomZoom(height_factor=0.2, width_factor=0.2),
     ],
-    name="data_augmentation",
-)
+    name="data_augmentation",)
 # Compute the mean and the variance of the training data for normalization.
 data_augmentation.layers[0].adapt(x_train)
 
@@ -133,8 +131,7 @@ class Patches(layers.Layer):
             sizes=[1, self.patch_size, self.patch_size, 1],
             strides=[1, self.patch_size, self.patch_size, 1],
             rates=[1, 1, 1, 1],
-            padding="VALID",
-        )
+            padding="VALID",)
         patch_dims = patches.shape[-1]
         patches = tf.reshape(patches, [batch_size, -1, patch_dims])
         return patches
@@ -150,8 +147,7 @@ plt.imshow(image.astype("uint8"))
 plt.axis("off")
 
 resized_image = tf.image.resize(
-    tf.convert_to_tensor([image]), size=(image_size, image_size)
-)
+    tf.convert_to_tensor([image]), size=(image_size, image_size))
 patches = Patches(patch_size)(resized_image)
 print(f"Image size: {image_size} X {image_size}")
 print(f"Patch size: {patch_size} X {patch_size}")
@@ -175,8 +171,7 @@ class PatchEncoder(layers.Layer):
         self.num_patches = num_patches
         self.projection = layers.Dense(units=projection_dim)
         self.position_embedding = layers.Embedding(
-            input_dim=num_patches, output_dim=projection_dim
-        )
+            input_dim=num_patches, output_dim=projection_dim)
 
     def call(self, patch):
         positions = tf.range(start=0, limit=self.num_patches, delta=1)
@@ -238,16 +233,14 @@ def run_experiment(model):
         metrics=[
             keras.metrics.SparseCategoricalAccuracy(name="accuracy"),
             keras.metrics.SparseTopKCategoricalAccuracy(5, name="top-5-accuracy"),
-        ],
-    )
+        ],)
 
     checkpoint_filepath = "/tmp/checkpoint"
     checkpoint_callback = keras.callbacks.ModelCheckpoint(
         checkpoint_filepath,
         monitor="val_accuracy",
         save_best_only=True,
-        save_weights_only=True,
-    )
+        save_weights_only=True,)
 
     history = model.fit(
         x=x_train,
@@ -255,8 +248,7 @@ def run_experiment(model):
         batch_size=batch_size,
         epochs=num_epochs,
         validation_split=0.1,
-        callbacks=[checkpoint_callback],
-    )
+        callbacks=[checkpoint_callback],)
 
     model.load_weights(checkpoint_filepath)
     _, accuracy, top_5_accuracy = model.evaluate(x_test, y_test)
