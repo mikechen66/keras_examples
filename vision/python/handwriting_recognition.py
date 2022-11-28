@@ -16,20 +16,18 @@ point for building OCR systems.
 
 ## Data collection
 
-shell
-wget -q https://git.io/J0fjL -O IAM_Words.zip
-unzip -qq IAM_Words.zip
+$ wget -q https://git.io/J0fjL -O IAM_Words.zip
+$ unzip -qq IAM_Words.zip
 
 ## Create the directory
-mkdir data
-mkdir data/words
-tar -xf IAM_Words/words.tgz -C data/words
-mv IAM_Words/words.txt data
+$ mkdir data
+$ mkdir data/words
+$ tar -xf IAM_Words/words.tgz -C data/words
+# mv IAM_Words/words.txt data
 
 ## Preview how the dataset is organized. Lines prepended by "#" are just metadata information.
 
-shell
-head -20 data/words.txt
+$ head -20 data/words.txt
 
 ## Data input pipeline
 
