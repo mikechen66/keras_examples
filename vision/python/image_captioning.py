@@ -7,47 +7,46 @@ Description: Implement an image captioning model using a CNN and a Transformer.
 
 ## Download the dataset
 
-We will be using the Flickr8K dataset for this tutorial. This dataset comprises over 8,000 images, 
-that are each paired with five different captions.
+We using the Flickr8K dataset for this tutorial. This dataset comprises over 8,000 images that 
+are each paired with five different captions. Please download from the terminal or shell.
 
-Download from the terminal or shell
 $ wget -q https://github.com/jbrownlee/Datasets/releases/download/Flickr8k/Flickr8k_Dataset.zip
 $ wget -q https://github.com/jbrownlee/Datasets/releases/download/Flickr8k/Flickr8k_text.zip
 $ unzip -qq Flickr8k_Dataset.zip
 $ unzip -qq Flickr8k_text.zip
 $ rm Flickr8k_Dataset.zip Flickr8k_text.zip
 
-## Vectorizing the text data
+## Vectorize the text data
 
-We'll use the `TextVectorization` layer to vectorize the text data, that is to say, to turn the
+We'll use the TextVectorization layer to vectorize the text data, that is to say, to turn the
 original strings into integer sequences where each integer represents the index of a word in a 
 vocabulary. We will use a custom string standardization scheme (strip punctuation characters 
 except `<` and `>`) and the default splitting scheme (split on whitespace).
 
-## Building a `tf.data.Dataset` pipeline for training
+## Build a tf.data.Dataset pipeline for training
 
-We will generate pairs of images and corresponding captions using a 'tf.data.Dataset' object.
-The pipeline consists of two steps:
+We will generate pairs of images and corresponding captions using a tf.data.Dataset object. The 
+pipeline consists of two steps:
 
-1. Read the image from the disk
-2. Tokenize all the five captions corresponding to the image
+1.Read the image from the disk
+2.Tokenize all the five captions corresponding to the image
 
 ## Building the model
 
-Our image captioning architecture consists of three models:
+The image captioning architecture consists of three models:
 
-1. A CNN: used to extract the image features
-2. A TransformerEncoder: The extracted image features are then passed to a Transformer
-                    based encoder that generates a new representation of the inputs
-3. A TransformerDecoder: This model takes the encoder output and the text data
-                    (sequences) as inputs and tries to learn to generate the caption.
+1.A CNN: used to extract the image features
+2.A TransformerEncoder: The extracted image features are then passed to a Transformer based 
+  encoder that generates a new representation of the inputs.
+3.A TransformerDecoder: This model takes the encoder output and the text data (sequences) as 
+  inputs and tries to learn to generate the caption.
 
 ## End Notes
 
-We saw that the model starts to generate reasonable captions after a few epochs. To keep
-this example easily runnable, we have trained it with a few constraints, like a minimal
-number of attention heads. To improve the predictions, you can try changing these training
-settings and find a good model for your use case.
+We saw the model starts to generate reasonable captions after a few epochs. To keep this example 
+easily runnable, we have trained it with a few constraints, like a minimal number of attention 
+heads. To improve the predictions, you can try changing the training settings and find a good 
+model for your use case.
 """
 
 
@@ -72,22 +71,16 @@ tf.random.set_seed(seed)
 
 # Path to the images
 IMAGES_PATH = "/home/mike/datasets/Flicker8K/Flicker8k_Dataset"
-
 # Desired image dimensions
 IMAGE_SIZE = (299, 299)
-
 # Vocabulary size
 VOCAB_SIZE = 10000
-
 # Fixed length allowed for any sequence
 SEQ_LENGTH = 25
-
 # Dimension for the image embeddings and token embeddings
 EMBED_DIM = 512
-
 # Per-layer units in the feed-forward network
 FF_DIM = 512
-
 # Other training parameters
 BATCH_SIZE = 64
 EPOCHS = 30
@@ -103,9 +96,8 @@ def load_captions_data(filename):
         filename: Path to the text file containing caption data.
     Returns:
         caption_mapping: Dictionary mapping image names and the corresponding captions
-        text_data: List containing all the available captions
+        text_data: List contains all the available captions
     """
-
     with open(filename) as caption_file:
         caption_data = caption_file.readlines()
         caption_mapping = {}
@@ -114,15 +106,13 @@ def load_captions_data(filename):
 
         for line in caption_data:
             line = line.rstrip("\n")
-            # Image name and captions are separated using a tab
+            # Image names and captions are separated using a tab
             img_name, caption = line.split("\t")
-
             # Each image is repeated five times for the five different captions.
             # Each image name has a suffix `#(caption_number)`
             img_name = img_name.split("#")[0]
             img_name = os.path.join(IMAGES_PATH, img_name.strip())
-
-            # We will remove caption that are either too short to too long
+            # We remove caption that are either too short to too long
             tokens = caption.strip().split()
 
             if len(tokens) < 5 or len(tokens) > SEQ_LENGTH:
@@ -130,7 +120,7 @@ def load_captions_data(filename):
                 continue
 
             if img_name.endswith("jpg") and img_name not in images_to_skip:
-                # We will add a start and an end token to each caption
+                # We add a start and an end token to each caption
                 caption = "<start> " + caption.strip() + " <end>"
                 text_data.append(caption)
 
@@ -145,7 +135,6 @@ def load_captions_data(filename):
 
         return caption_mapping, text_data
 
-
 def train_val_split(caption_data, train_size=0.8, shuffle=True):
     """
     Split the captioning dataset into train and validation sets.
@@ -156,27 +145,21 @@ def train_val_split(caption_data, train_size=0.8, shuffle=True):
     Returns:
         Traning and validation datasets as two separated dicts
     """
-
-    # 1. Get the list of all image names
+    # 1.Get the list of all image names
     all_images = list(caption_data.keys())
 
-    # 2. Shuffle if necessary
+    # 2.Shuffle if necessary
     if shuffle:
         np.random.shuffle(all_images)
 
-    # 3. Split into training and validation sets
+    # 3.Split into training and validation sets
     train_size = int(len(caption_data) * train_size)
 
-    training_data = {
-        img_name: caption_data[img_name] for img_name in all_images[:train_size]
-    }
-    validation_data = {
-        img_name: caption_data[img_name] for img_name in all_images[train_size:]
-    }
+    training_data = {img_name: caption_data[img_name] for img_name in all_images[:train_size]}
+    validation_data = {img_name: caption_data[img_name] for img_name in all_images[train_size:]}
 
-    # 4. Return the splits
+    # 4.Return the splits
     return training_data, validation_data
-
 
 # Load the dataset
 captions_mapping, text_data = load_captions_data("/home/mike/datasets/Flicker8K/Flicker8k_text/Flickr8k.token.txt")
@@ -187,7 +170,7 @@ print("Number of training samples: ", len(train_data))
 print("Number of validation samples: ", len(valid_data))
 
 
-## Vectorizing the text data
+## Vectorize the text data
 
 def custom_standardization(input_string):
     lowercase = tf.strings.lower(input_string)
@@ -202,8 +185,7 @@ vectorization = TextVectorization(
     max_tokens=VOCAB_SIZE,
     output_mode="int",
     output_sequence_length=SEQ_LENGTH,
-    standardize=custom_standardization,
-)
+    standardize=custom_standardization,)
 vectorization.adapt(text_data)
 
 # Data augmentation for image data
@@ -212,11 +194,10 @@ image_augmentation = keras.Sequential(
         layers.RandomFlip("horizontal"),
         layers.RandomRotation(0.2),
         layers.RandomContrast(0.3),
-    ]
-)
+    ])
 
 
-## Building a `tf.data.Dataset` pipeline for training
+## Build a tf.data.Dataset pipeline for training
 
 def decode_and_resize(img_path):
     img = tf.io.read_file(img_path)
@@ -225,10 +206,8 @@ def decode_and_resize(img_path):
     img = tf.image.convert_image_dtype(img, tf.float32)
     return img
 
-
 def process_input(img_path, captions):
     return decode_and_resize(img_path), vectorization(captions)
-
 
 def make_dataset(images, captions):
     dataset = tf.data.Dataset.from_tensor_slices((images, captions))
@@ -238,28 +217,24 @@ def make_dataset(images, captions):
 
     return dataset
 
-
 # Pass the list of images and the list of corresponding captions
 train_dataset = make_dataset(list(train_data.keys()), list(train_data.values()))
-
 valid_dataset = make_dataset(list(valid_data.keys()), list(valid_data.values()))
 
 
-## Building the model
+## Build the model
 
 def get_cnn_model():
     base_model = efficientnet.EfficientNetB0(
         input_shape=(*IMAGE_SIZE, 3),
         include_top=False,
-        weights="imagenet",
-    )
-    # We freeze our feature extractor
+        weights="imagenet",)
+    # We freeze the feature extractor
     base_model.trainable = False
     base_model_out = base_model.output
     base_model_out = layers.Reshape((-1, base_model_out.shape[-1]))(base_model_out)
     cnn_model = keras.models.Model(base_model.input, base_model_out)
     return cnn_model
-
 
 class TransformerEncoderBlock(layers.Layer):
     def __init__(self, embed_dim, dense_dim, num_heads, **kwargs):
@@ -268,8 +243,7 @@ class TransformerEncoderBlock(layers.Layer):
         self.dense_dim = dense_dim
         self.num_heads = num_heads
         self.attention_1 = layers.MultiHeadAttention(
-            num_heads=num_heads, key_dim=embed_dim, dropout=0.0
-        )
+            num_heads=num_heads, key_dim=embed_dim, dropout=0.0)
         self.layernorm_1 = layers.LayerNormalization()
         self.layernorm_2 = layers.LayerNormalization()
         self.dense_1 = layers.Dense(embed_dim, activation="relu")
@@ -283,21 +257,17 @@ class TransformerEncoderBlock(layers.Layer):
             value=inputs,
             key=inputs,
             attention_mask=None,
-            training=training,
-        )
+            training=training,)
         out_1 = self.layernorm_2(inputs + attention_output_1)
         return out_1
-
 
 class PositionalEmbedding(layers.Layer):
     def __init__(self, sequence_length, vocab_size, embed_dim, **kwargs):
         super().__init__(**kwargs)
         self.token_embeddings = layers.Embedding(
-            input_dim=vocab_size, output_dim=embed_dim
-        )
+            input_dim=vocab_size, output_dim=embed_dim)
         self.position_embeddings = layers.Embedding(
-            input_dim=sequence_length, output_dim=embed_dim
-        )
+            input_dim=sequence_length, output_dim=embed_dim)
         self.sequence_length = sequence_length
         self.vocab_size = vocab_size
         self.embed_dim = embed_dim
@@ -314,7 +284,6 @@ class PositionalEmbedding(layers.Layer):
     def compute_mask(self, inputs, mask=None):
         return tf.math.not_equal(inputs, 0)
 
-
 class TransformerDecoderBlock(layers.Layer):
     def __init__(self, embed_dim, ff_dim, num_heads, **kwargs):
         super().__init__(**kwargs)
@@ -322,11 +291,9 @@ class TransformerDecoderBlock(layers.Layer):
         self.ff_dim = ff_dim
         self.num_heads = num_heads
         self.attention_1 = layers.MultiHeadAttention(
-            num_heads=num_heads, key_dim=embed_dim, dropout=0.1
-        )
+            num_heads=num_heads, key_dim=embed_dim, dropout=0.1)
         self.attention_2 = layers.MultiHeadAttention(
-            num_heads=num_heads, key_dim=embed_dim, dropout=0.1
-        )
+            num_heads=num_heads, key_dim=embed_dim, dropout=0.1)
         self.ffn_layer_1 = layers.Dense(ff_dim, activation="relu")
         self.ffn_layer_2 = layers.Dense(embed_dim)
 
@@ -335,8 +302,7 @@ class TransformerDecoderBlock(layers.Layer):
         self.layernorm_3 = layers.LayerNormalization()
 
         self.embedding = PositionalEmbedding(
-            embed_dim=EMBED_DIM, sequence_length=SEQ_LENGTH, vocab_size=VOCAB_SIZE
-        )
+            embed_dim=EMBED_DIM, sequence_length=SEQ_LENGTH, vocab_size=VOCAB_SIZE)
         self.out = layers.Dense(VOCAB_SIZE, activation="softmax")
 
         self.dropout_1 = layers.Dropout(0.3)
@@ -357,8 +323,7 @@ class TransformerDecoderBlock(layers.Layer):
             value=inputs,
             key=inputs,
             attention_mask=combined_mask,
-            training=training,
-        )
+            training=training,)
         out_1 = self.layernorm_1(inputs + attention_output_1)
 
         attention_output_2 = self.attention_2(
@@ -366,8 +331,7 @@ class TransformerDecoderBlock(layers.Layer):
             value=encoder_outputs,
             key=encoder_outputs,
             attention_mask=padding_mask,
-            training=training,
-        )
+            training=training,)
         out_2 = self.layernorm_2(out_1 + attention_output_2)
 
         ffn_out = self.ffn_layer_1(out_2)
@@ -388,20 +352,12 @@ class TransformerDecoderBlock(layers.Layer):
         mask = tf.reshape(mask, (1, input_shape[1], input_shape[1]))
         mult = tf.concat(
             [tf.expand_dims(batch_size, -1), tf.constant([1, 1], dtype=tf.int32)],
-            axis=0,
-        )
+            axis=0,)
         return tf.tile(mask, mult)
 
-
 class ImageCaptioningModel(keras.Model):
-    def __init__(
-        self,
-        cnn_model,
-        encoder,
-        decoder,
-        num_captions_per_image=5,
-        image_aug=None,
-    ):
+    def __init__(self, cnn_model, encoder, decoder,
+                 num_captions_per_image=5, image_aug=None,):
         super().__init__()
         self.cnn_model = cnn_model
         self.encoder = encoder
@@ -430,8 +386,7 @@ class ImageCaptioningModel(keras.Model):
         batch_seq_true = batch_seq[:, 1:]
         mask = tf.math.not_equal(batch_seq_true, 0)
         batch_seq_pred = self.decoder(
-            batch_seq_inp, encoder_out, training=training, mask=mask
-        )
+            batch_seq_inp, encoder_out, training=training, mask=mask)
         loss = self.calculate_loss(batch_seq_true, batch_seq_pred, mask)
         acc = self.calculate_accuracy(batch_seq_true, batch_seq_pred, mask)
         return loss, acc
@@ -444,39 +399,36 @@ class ImageCaptioningModel(keras.Model):
         if self.image_aug:
             batch_img = self.image_aug(batch_img)
 
-        # 1. Get image embeddings
+        # 1.Get image embeddings
         img_embed = self.cnn_model(batch_img)
 
-        # 2. Pass each of the five captions one by one to the decoder
-        # along with the encoder outputs and compute the loss as well as accuracy
-        # for each caption.
+        # 2.Pass each of the five captions to the decoder along with the encoder 
+        # outputs and compute the loss and as accuracy for each caption.
         for i in range(self.num_captions_per_image):
             with tf.GradientTape() as tape:
                 loss, acc = self._compute_caption_loss_and_acc(
-                    img_embed, batch_seq[:, i, :], training=True
-                )
+                    img_embed, batch_seq[:, i, :], training=True)
 
-                # 3. Update loss and accuracy
+                # 3.Update loss and accuracy
                 batch_loss += loss
                 batch_acc += acc
 
-            # 4. Get the list of all the trainable weights
+            # 4.Get the list of all the trainable weights
             train_vars = (
-                self.encoder.trainable_variables + self.decoder.trainable_variables
-            )
+                self.encoder.trainable_variables + self.decoder.trainable_variables)
 
-            # 5. Get the gradients
+            # 5.Get the gradients
             grads = tape.gradient(loss, train_vars)
 
-            # 6. Update the trainable weights
+            # 6.Update the trainable weights
             self.optimizer.apply_gradients(zip(grads, train_vars))
 
-        # 7. Update the trackers
+        # 7.Update the trackers
         batch_acc /= float(self.num_captions_per_image)
         self.loss_tracker.update_state(batch_loss)
         self.acc_tracker.update_state(batch_acc)
 
-        # 8. Return the loss and accuracy values
+        # 8.Return the loss and accuracy values
         return {"loss": self.loss_tracker.result(), "acc": self.acc_tracker.result()}
 
     def test_step(self, batch_data):
@@ -484,36 +436,32 @@ class ImageCaptioningModel(keras.Model):
         batch_loss = 0
         batch_acc = 0
 
-        # 1. Get image embeddings
+        # 1.Get image embeddings
         img_embed = self.cnn_model(batch_img)
 
-        # 2. Pass each of the five captions one by one to the decoder
-        # along with the encoder outputs and compute the loss as well as accuracy
-        # for each caption.
+        # 2.Pass each of the five captions to the decoder along with the encoder 
+        # outputs and compute the loss and accuracy for each caption.
         for i in range(self.num_captions_per_image):
             loss, acc = self._compute_caption_loss_and_acc(
-                img_embed, batch_seq[:, i, :], training=False
-            )
+                img_embed, batch_seq[:, i, :], training=False)
 
-            # 3. Update batch loss and batch accuracy
+            # 3.Update batch loss and batch accuracy
             batch_loss += loss
             batch_acc += acc
 
         batch_acc /= float(self.num_captions_per_image)
 
-        # 4. Update the trackers
+        # 4.Update the trackers
         self.loss_tracker.update_state(batch_loss)
         self.acc_tracker.update_state(batch_acc)
 
-        # 5. Return the loss and accuracy values
+        # 5.Return the loss and accuracy values
         return {"loss": self.loss_tracker.result(), "acc": self.acc_tracker.result()}
 
     @property
     def metrics(self):
-        # We need to list our metrics here so the `reset_states()` can be
-        # called automatically.
+        # List the metrics so reset_states() can be called automatically.
         return [self.loss_tracker, self.acc_tracker]
-
 
 cnn_model = get_cnn_model()
 encoder = TransformerEncoderBlock(embed_dim=EMBED_DIM, dense_dim=FF_DIM, num_heads=1)
@@ -522,20 +470,15 @@ caption_model = ImageCaptioningModel(
     cnn_model=cnn_model,
     encoder=encoder,
     decoder=decoder,
-    image_aug=image_augmentation,
-)
+    image_aug=image_augmentation,)
 
 
-## Model training
+## Train the model
 
 # Define the loss function
-cross_entropy = keras.losses.SparseCategoricalCrossentropy(
-    from_logits=False, reduction="none"
-)
-
+cross_entropy = keras.losses.SparseCategoricalCrossentropy(from_logits=False, reduction="none")
 # EarlyStopping criteria
 early_stopping = keras.callbacks.EarlyStopping(patience=3, restore_best_weights=True)
-
 
 # Learning Rate Scheduler for the optimizer
 class LRSchedule(keras.optimizers.schedules.LearningRateSchedule):
@@ -552,9 +495,7 @@ class LRSchedule(keras.optimizers.schedules.LearningRateSchedule):
         return tf.cond(
             global_step < warmup_steps,
             lambda: warmup_learning_rate,
-            lambda: self.post_warmup_learning_rate,
-        )
-
+            lambda: self.post_warmup_learning_rate,)
 
 # Create a learning rate schedule
 num_train_steps = len(train_dataset) * EPOCHS
@@ -569,8 +510,7 @@ caption_model.fit(
     train_dataset,
     epochs=EPOCHS,
     validation_data=valid_dataset,
-    callbacks=[early_stopping],
-)
+    callbacks=[early_stopping],)
 
 
 ## Check sample predictions
@@ -579,7 +519,6 @@ vocab = vectorization.get_vocabulary()
 index_lookup = dict(zip(range(len(vocab)), vocab))
 max_decoded_sentence_length = SEQ_LENGTH - 1
 valid_images = list(valid_data.keys())
-
 
 def generate_caption():
     # Select a random image from the validation dataset
@@ -604,8 +543,7 @@ def generate_caption():
         tokenized_caption = vectorization([decoded_caption])[:, :-1]
         mask = tf.math.not_equal(tokenized_caption, 0)
         predictions = caption_model.decoder(
-            tokenized_caption, encoded_img, training=False, mask=mask
-        )
+            tokenized_caption, encoded_img, training=False, mask=mask)
         sampled_token_index = np.argmax(predictions[0, i, :])
         sampled_token = index_lookup[sampled_token_index]
         if sampled_token == " <end>":
@@ -615,7 +553,6 @@ def generate_caption():
     decoded_caption = decoded_caption.replace("<start> ", "")
     decoded_caption = decoded_caption.replace(" <end>", "").strip()
     print("Predicted Caption: ", decoded_caption)
-
 
 # Check predictions for a few samples
 generate_caption()
