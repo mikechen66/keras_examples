@@ -8,66 +8,72 @@ Description: Implementing Masked Autoencoders for self-supervised pretraining.
 
 ## Introduction
 
-In deep learning, models with growing **capacity** and **capability** can easily overfit
-on large datasets (ImageNet-1K). In the field of natural language processing, the
-appetite for data has been **successfully addressed** by self-supervised pretraining.
+In deep learning, models with growing capacity and capability can easily overfit on 
+large datasets(ImageNet-1K). In the field of NLP, the appetite for data has been 
+successfully addressed by self-supervised pretraining. In the academic paper Masked 
+Autoencoders Are Scalable Vision Learners by He et. al. is listed as follows. 
 
-In the academic paper
-[Masked Autoencoders Are Scalable Vision Learners](https://arxiv.org/abs/2111.06377)
-by He et. al. the authors propose a simple yet effective method to pretrain large
-vision models (here [ViT Huge](https://arxiv.org/abs/2010.11929)). Inspired from
-the pretraining algorithm of BERT ([Devlin et al.](https://arxiv.org/abs/1810.04805)),
-they mask patches of an image and, through an autoencoder predict the masked patches.
-In the spirit of "masked language modeling", this pretraining task could be referred
-to as "masked image modeling".
+https://arxiv.org/abs/2111.06377
 
-In this example, we implement
-[Masked Autoencoders Are Scalable Vision Learners](https://arxiv.org/abs/2111.06377)
-with the [CIFAR-10](https://www.cs.toronto.edu/~kriz/cifar.html) dataset. After
-pretraining a scaled down version of ViT, we also implement the linear evaluation
-pipeline on CIFAR-10.
+The authors propose a simple and effective method to pretrain large vision models
+(ViT Huge)
 
-This implementation covers (MAE refers to Masked Autoencoder):
+https://arxiv.org/abs/2010.11929
+
+Inspired from the pretraining algorithm of BERT(Devlin et al.)
+
+https://arxiv.org/abs/1810.04805
+
+They mask patches of an image and, through an autoencoder predict the masked patches.
+In the spirit of masked language modeling, this pretraining task could be referred to 
+as masked image modeling.
+
+In this example, we implement Masked Autoencoders Are Scalable Vision Learners
+
+(https://arxiv.org/abs/2111.06377
+
+with the CIFAR-10 dataset as follows. 
+
+https://www.cs.toronto.edu/~kriz/cifar.html
+
+After pretraining a scaled down version of ViT, we implement the linear evaluation
+pipeline on CIFAR-10. The implementation covers MAE(Masked Autoencoder):
 
 - The masking algorithm
 - MAE encoder
 - MAE decoder
 - Evaluation with linear probing
 
-As a reference, we reuse some of the code presented in
-[this example](https://keras.io/examples/vision/image_classification_with_vision_transformer/).
+As a reference, we reuse some of the code presented in the example as follows. 
+
+https://keras.io/examples/vision/image_classification_with_vision_transformer/
 
 ## Imports
 
-This example requires TensorFlow Addons, which can be installed using the following
+The example requires TensorFlow Addons, which can be installed using the following
 command:
 
-```shell
-pip install -U tensorflow-addons
-```
+# Install the packages in Miniconda Environment: 
+$ conda install pip
+$ pip install -U tensorflow-addons
 
 ## Hyperparameters for pretraining
 
 Please feel free to change the hyperparameters and check your results. The best way to
-get an intuition about the architecture is to experiment with it. Our hyperparameters are
-heavily inspired by the design guidelines laid out by the authors in
-[the original paper](https://arxiv.org/abs/2111.06377).
+get an intuition about the architecture is to experiment with it. Our hyperparameters 
+are heavily inspired by the design guidelines laid out by the authors in the paper
 
-## Load and prepare the CIFAR-10 dataset
-
-raise ConnectionError(e, request=request)
-requests.exceptions.ConnectionError: HTTPSConnectionPool(host='www.cs.toronto.edu', port=443): 
-Max retries exceeded with url: /~kriz/cifar-10-binary.tar.gz (Caused by NewConnectionError
-('<urllib3.connection.HTTPSConnection object at 0x7f436057fbb0>: Failed to establish a new 
-connection: [Errno -2] Name or service not known'))
+https://arxiv.org/abs/2111.06377
 
 ## Data augmentation
 
-In previous self-supervised pretraining methodologies
-([SimCLR](https://arxiv.org/abs/2002.05709) alike), we have noticed that the data
-augmentation pipeline plays an important role. On the other hand the authors of this
-paper point out that Masked Autoencoders **do not** rely on augmentations. They propose a
-simple augmentation pipeline of:
+We have noticed that the data augmentation pipeline plays an important role in previous 
+self-supervised pretraining methodologies SimCLR
+
+https://arxiv.org/abs/2002.05709
+
+On the other hand the authors of the paper point out that Masked Autoencoders do not 
+rely on augmentations. They propose a simple augmentation pipeline: 
 
 - Resizing
 - Random cropping (fixed-sized or random sized)
@@ -78,46 +84,38 @@ simple augmentation pipeline of:
 This layer takes images as input and divides them into patches. The layer also includes
 two utility method:
 
-- `show_patched_image` -- Takes a batch of images and its corresponding patches to plot a
+- show_patched_image -- Takes a batch of images and its corresponding patches to plot a
 random pair of image and patches.
-- `reconstruct_from_patch` -- Takes a single instance of patches and stitches them
-together into the original image.
+- reconstruct_from_patch -- Takes a single instance of patches and stitches them together 
+into the original image.
 
 ## Patch encoding with masking
 
 Quoting the paper
 
-> Following ViT, we divide an image into regular non-overlapping patches. Then we sample
+Following ViT, we divide an image into regular non-overlapping patches. Then we sample
 a subset of patches and mask (i.e., remove) the remaining ones. Our sampling strategy is
 straightforward: we sample random patches without replacement, following a uniform
 distribution. We simply refer to this as “random sampling”.
 
 This layer includes masking and encoding the patches.
 
-The utility methods of the layer are:
-
-- `get_random_indices` -- Provides the mask and unmask indices.
-- `generate_masked_image` -- Takes patches and unmask indices, results in a random masked
-image. This is an essential utility method for our training monitor callback (defined
-later).
-
 ## MAE encoder and decoder
 
-MAE encoder
-The MAE encoder is ViT. The only point to note here is that the encoder outputs a layer
-normalized output.
+MAE encoder: The MAE encoder is ViT. The only point to note is that the encoder outputs 
+a layer normalized output.
 
-MAE decoder 
+1.MAE decoder 
 
 The authors point out that they use an **asymmetric** autoencoder model. They use a
 lightweight decoder that takes "<10% computation per token vs. the encoder". We are not
 specific with the "<10% computation" in our implementation but have used a smaller
 decoder (both in terms of depth and projection dimensions).
 
-MAE trainer
+2.MAE trainer
 
-This is the trainer module. We wrap the encoder and decoder inside of a `tf.keras.Model`
-subclass. This allows us to customize what happens in the `model.fit()` loop.
+This is the trainer module. We wrap the encoder and decoder inside of a tf.keras.Model
+subclass. This allows us to customize what happens in the model.fit() loop.
 
 ## Evaluation with linear probing
 
@@ -135,7 +133,7 @@ gave us ~76% test top-1 accuracy. The authors of MAE demonstrates strong perform
 the ImageNet-1k dataset as well as other downstream tasks like object detection and 
 semantic segmentation.
 
-(https://github.com/ariG23498/mae-scalable-vision-learners/blob/master/regular-classification.ipynb)
+https://github.com/ariG23498/mae-scalable-vision-learners/blob/master/regular-classification.ipynb
 
 ## Final notes
 
@@ -194,7 +192,7 @@ EPOCHS = 100
 
 # AUGMENTATION
 IMAGE_SIZE = 48  # We will resize input images to this size.
-PATCH_SIZE = 6  # Size of the patches to be extracted from the input images.
+PATCH_SIZE = 6   # Size of the patches to be extracted from the input images.
 NUM_PATCHES = (IMAGE_SIZE // PATCH_SIZE) ** 2
 MASK_PROPORTION = 0.75  # We have found 75% masking to give us the best results.
 
