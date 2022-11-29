@@ -41,7 +41,7 @@ https://forms.gle/sRtbicgxsWvRtRmUA
 
 unzip -qq stanfordextra_v12.zip
 
-If users were not able to get the data, please see the following alternative dataset.
+If users were not able to get the data, please see the following alternative data.
 
 https://github.com/benjiebob/StanfordExtra
 
@@ -120,7 +120,8 @@ NUM_KEYPOINTS = 24 * 2  # 24 pairs each having x and y coordinates
 IMG_DIR = "/home/mike/datasets/stanford/Images"
 JSON = "/home/mike/datasets/stanford/StanfordExtra_V12/StanfordExtra_v12.json"
 KEYPOINT_DEF = (
-    "https://github.com/benjiebob/StanfordExtra/raw/master/keypoint_definitions.csv")
+    "https://github.com/benjiebob/StanfordExtra/raw/master/keypoint_definitions.csv"
+)
 
 # Load the ground-truth annotations.
 with open(JSON) as infile:
@@ -225,7 +226,8 @@ def visualize_keypoints(images, keypoints):
         if isinstance(current_keypoint, KeypointsOnImage):
             for idx, kp in enumerate(current_keypoint.keypoints):
                 ax_all.scatter(
-                    [kp.x], [kp.y], c=colours[idx], marker="x", s=50, linewidths=5)
+                    [kp.x], [kp.y], c=colours[idx], marker="x", s=50, linewidths=5
+                )
         else:
             current_keypoint = np.array(current_keypoint)
             # Since the last entry is the visibility flag, we discard it.
@@ -235,6 +237,7 @@ def visualize_keypoints(images, keypoints):
 
     plt.tight_layout(pad=2.0)
     plt.show()
+
 
 # Select four samples randomly for visualization.
 samples = list(json_dict.keys())
@@ -282,7 +285,8 @@ class KeyPointsDataset(keras.utils.Sequence):
     def __data_generation(self, image_keys_temp):
         batch_images = np.empty((self.batch_size, IMG_SIZE, IMG_SIZE, 3), dtype="int")
         batch_keypoints = np.empty(
-            (self.batch_size, 1, 1, NUM_KEYPOINTS), dtype="float32")
+            (self.batch_size, 1, 1, NUM_KEYPOINTS), dtype="float32"
+        )
 
         for i, key in enumerate(image_keys_temp):
             data = get_dog(key)
@@ -300,7 +304,9 @@ class KeyPointsDataset(keras.utils.Sequence):
 
             # Apply the augmentation pipeline.
             (new_image, new_kps_obj) = self.aug(image=current_image, keypoints=kps_obj)
-            batch_images[i,] = new_image
+            batch_images[
+                i,
+            ] = new_image
 
             # Parse the coordinates from the new keypoint object.
             kp_temp = []
@@ -321,12 +327,15 @@ class KeyPointsDataset(keras.utils.Sequence):
 
 ## Define augmentation transforms
 
-train_aug = iaa.Sequential([
+train_aug = iaa.Sequential(
+    [
         iaa.Resize(IMG_SIZE, interpolation="linear"),
         iaa.Fliplr(0.3),
-        # Sometimes() applies a function randomly to the inputs with
+        # `Sometimes()` applies a function randomly to the inputs with
         # a given probability (0.3, in this case).
-        iaa.Sometimes(0.3, iaa.Affine(rotate=10, scale=(0.5, 0.7))),])
+        iaa.Sometimes(0.3, iaa.Affine(rotate=10, scale=(0.5, 0.7))),
+    ]
+)
 
 test_aug = iaa.Sequential([iaa.Resize(IMG_SIZE, interpolation="linear")])
 
@@ -336,7 +345,8 @@ test_aug = iaa.Sequential([iaa.Resize(IMG_SIZE, interpolation="linear")])
 np.random.shuffle(samples)
 train_keys, validation_keys = (
     samples[int(len(samples) * 0.15) :],
-    samples[: int(len(samples) * 0.15)],)
+    samples[: int(len(samples) * 0.15)],
+)
 
 
 ## Data generator investigation
@@ -360,7 +370,8 @@ visualize_keypoints(sample_images[:4], sample_keypoints)
 def get_model():
     # Load the pre-trained weights of MobileNetV2 and freeze the weights
     backbone = keras.applications.MobileNetV2(
-        weights="imagenet", include_top=False, input_shape=(IMG_SIZE, IMG_SIZE, 3))
+        weights="imagenet", include_top=False, input_shape=(IMG_SIZE, IMG_SIZE, 3)
+    )
     backbone.trainable = False
 
     inputs = layers.Input((IMG_SIZE, IMG_SIZE, 3))
@@ -368,9 +379,11 @@ def get_model():
     x = backbone(x)
     x = layers.Dropout(0.3)(x)
     x = layers.SeparableConv2D(
-        NUM_KEYPOINTS, kernel_size=5, strides=1, activation="relu")(x)
+        NUM_KEYPOINTS, kernel_size=5, strides=1, activation="relu"
+    )(x)
     outputs = layers.SeparableConv2D(
-        NUM_KEYPOINTS, kernel_size=3, strides=1, activation="sigmoid")(x)
+        NUM_KEYPOINTS, kernel_size=3, strides=1, activation="sigmoid"
+    )(x)
 
     return keras.Model(inputs, outputs, name="keypoint_detector")
 
