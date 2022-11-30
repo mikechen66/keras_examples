@@ -4,44 +4,39 @@ Author: [Khalid Salama](https://www.linkedin.com/in/khalid-salama-24403144/)
 Date created: 2021/05/30
 Last modified: 2021/05/30
 Description: Implementing the MLP-Mixer, FNet, and gMLP models for CIFAR-100 image classification.
-"""
 
-"""
 ## Introduction
 
 This example implements three modern attention-free, multi-layer perceptron (MLP) based models for image
 classification, demonstrated on the CIFAR-100 dataset:
 
-1. The [MLP-Mixer](https://arxiv.org/abs/2105.01601) model, by Ilya Tolstikhin et al., based on two types 
-   of MLPs.
-3. The [FNet](https://arxiv.org/abs/2105.03824) model, by James Lee-Thorp et al., based on unparameterized
-   Fourier Transform.
-2. The [gMLP](https://arxiv.org/abs/2105.08050) model, by Hanxiao Liu et al., based on MLP with gating.
+1.The [MLP-Mixer](https://arxiv.org/abs/2105.01601) model, by Ilya Tolstikhin et al., based on two types 
+  of MLPs.
+3.The [FNet](https://arxiv.org/abs/2105.03824) model, by James Lee-Thorp et al., based on unparameterized
+  Fourier Transform.
+2.The [gMLP](https://arxiv.org/abs/2105.08050) model, by Hanxiao Liu et al., based on MLP with gating.
 
 The purpose of the example is not to compare between these models, as they might perform differently on
 different datasets with well-tuned hyperparameters. Rather, it is to show simple implementations of their
-main building blocks.
+main building blocks. The example requires TensorFlow 2.4 and TensorFlow Addons which can be installed 
+using  the following command(https://www.tensorflow.org/addons/overview) in the Miniconda environment. 
 
-This example requires TensorFlow 2.4 or higher, as well as [TensorFlow Addons] which can be installed using 
-the following command(https://www.tensorflow.org/addons/overview),
-
-```
-pip install -U tensorflow-addons
-```
+$ conda install pip (ignore it in installed)
+$ pip install -U tensorflow-addons
 
 ## The MLP-Mixer model
 
 The MLP-Mixer is an architecture based exclusively on multi-layer perceptrons (MLPs), that contains two 
 types of MLP layers:
 
-1. One applied independently to image patches, which mixes the per-location features.
-2. The other applied across patches (along channels), which mixes spatial information.
+1.One applied independently to image patches, which mixes the per-location features.
+2.The other applied across patches (along channels), which mixes spatial information.
 
 This is similar to a [depthwise separable convolution based model](https://arxiv.org/pdf/1610.02357.pdf)
 such as the Xception model, but with two chained dense transforms, no max pooling, and layer normalization
 instead of batch normalization.
 
-### Implement the MLP-Mixer module
+## Implement the MLP-Mixer module
 
 Note that training the model with the current settings on a V100 GPUs takes around 8 seconds per epoch.
 The MLP-Mixer model tends to have much less number of parameters compared to convolutional and transformer-
@@ -58,34 +53,32 @@ and use different patch sizes.
 The FNet uses a similar block to the Transformer block. However, FNet replaces the self-attention layer
 in the Transformer block with a parameter-free 2D Fourier transformation layer:
 
-1. One 1D Fourier Transform is applied along the patches.
-2. One 1D Fourier Transform is applied along the channels.
+1.One 1D Fourier Transform is applied along the patches.
+2.One 1D Fourier Transform is applied along the channels.
 
-## Implement the FNet module
+# Implement the FNet module
 
-### Build, train, and evaluate the FNet model
+# Build, train, and evaluate the FNet model
 
-Note that training the model with the current settings on a V100 GPUs
-takes around 8 seconds per epoch.
+Note that training the model with the current settings on a V100 GPUs takes around 8 seconds per epoch.
 
-As shown in the [FNet](https://arxiv.org/abs/2105.03824) paper, better results can be achieved by increasing 
+As shown in the FNet(https://arxiv.org/abs/2105.03824) paper, better results can be achieved by increasing 
 the embedding dimensions, increasing the number of FNet blocks, and training the model for longer. You may 
 also try to increase the size of the input images and use different patch sizes. The FNet scales efficiently 
 to long inputs, runs much faster than attention-based Transformer models, and produces competitive accuracy 
 results.
 
-
 ## The gMLP model
 
-The gMLP is a MLP architecture that features a Spatial Gating Unit (SGU).
-The SGU enables cross-patch interactions across the spatial (channel) dimension, by:
+The gMLP is a MLP architecture that features a Spatial Gating Unit(SGU).The SGU enables cross-patch 
+interactions across the spatial (channel) dimension by the following:
 
-1. Transforming the input spatially by applying linear projection across patches (along channels).
-2. Applying element-wise multiplication of the input and its spatial transformation.
+1.Transform the input spatially by applying linear projection across patches (along channels).
+2.Apply element-wise multiplication of the input and its spatial transformation.
 
-### Implement the gMLP module
+# Implement the gMLP module
 
-### Build, train, and evaluate the gMLP model
+# Build, train, and evaluate the gMLP model
 
 Note that training the model with the current settings on a V100 GPUs takes around 9 seconds per epoch.
 
@@ -135,8 +128,7 @@ print(f"Elements per patch (3 channels): {(patch_size ** 2) * 3}")
 
 ## Build a classification model
 
-# We implement a method that builds a classifier given the processing blocks.
-
+# Implement a method that builds a classifier given the processing blocks.
 def build_classifier(blocks, positional_encoding=False):
     inputs = layers.Input(shape=input_shape)
     # Augment data.
@@ -151,9 +143,9 @@ def build_classifier(blocks, positional_encoding=False):
             input_dim=num_patches, output_dim=embedding_dim
         )(positions)
         x = x + position_embedding
-    # Process x using the module blocks.
+    # Process x with using the module blocks.
     x = blocks(x)
-    # Apply global average pooling to generate a [batch_size, embedding_dim] representation tensor.
+    # Apply GAP to generate a [batch_size, embedding_dim] representation tensor.
     representation = layers.GlobalAveragePooling1D()(x)
     # Apply dropout.
     representation = layers.Dropout(rate=dropout_rate)(representation)
@@ -165,8 +157,7 @@ def build_classifier(blocks, positional_encoding=False):
 
 ## Define an experiment
 
-# We implement a utility function to compile, train, and evaluate a given model.
-
+# Implement a utility function to compile, train and evaluate a given model.
 def run_experiment(model):
     # Create Adam optimizer with weight decay.
     optimizer = tfa.optimizers.AdamW(
@@ -290,7 +281,7 @@ class MLPMixerLayer(layers.Layer):
         return x
 
 
-# Build, train, and evaluate the MLP-Mixer model
+# Build, train and evaluate the MLP-Mixer model
 mlpmixer_blocks = keras.Sequential(
     [MLPMixerLayer(num_patches, embedding_dim, dropout_rate) for _ in range(num_blocks)]
 )
@@ -335,7 +326,7 @@ class FNetLayer(layers.Layer):
         return self.normalize2(x)
 
 
-# Build, train, and evaluate the FNet model
+# Build, train and evaluate the FNet model
 fnet_blocks = keras.Sequential(
     [FNetLayer(num_patches, embedding_dim, dropout_rate) for _ in range(num_blocks)]
 )
@@ -393,8 +384,7 @@ class gMLPLayer(layers.Layer):
         # Add skip connection.
         return x + x_projected
 
-
-# Build, train, and evaluate the gMLP model
+# Build, train and evaluate the gMLP model
 gmlp_blocks = keras.Sequential(
     [gMLPLayer(num_patches, embedding_dim, dropout_rate) for _ in range(num_blocks)]
 )
