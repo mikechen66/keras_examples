@@ -32,8 +32,8 @@ Finally, this example uses the following resource as a reference and as such reu
 some of its code: [Locality Sensitive Hashing for Similar Item Search]
 (https://towardsdatascience.com/locality-sensitive-hashing-for-music-search-f2f1940ace23).
 
-_Note that in order to optimize the performance of our parser, you should have a GPU 
-runtime available._
+Note that in order to optimize the performance of our parser, you should have a GPU 
+runtime available.
 
 ## Load the dataset and create a training set of 1,000 images
 
@@ -55,7 +55,7 @@ Representation Learning](https://arxiv.org/abs/1912.11370)). The BiT-ResNet fami
 models is known to provide excellent transfer performance across a wide variety of 
 different downstream tasks.
 
-shell
+$ conda install pip (ingore it if installed)
 $ wget -q https://git.io/JuMq0 -O flower_model_bit_0.96875.zip
 $ unzip -qq flower_model_bit_0.96875.zip
 
@@ -83,7 +83,7 @@ perspective, bitwise hash values are cheaper to store and operate on.
 
 ## Query utilities
 
-The `Table` class is responsible for building a single hash table. Each entry in the hash
+The Table class is responsible for building a single hash table. Each entry in the hash
 table is a mapping between the reduced embedding of an image from our dataset and a
 unique identifier. Because our dimensionality reduction technique involves randomness, it
 can so happen that similar images are not mapped to the same hash bucket everytime the
@@ -128,7 +128,7 @@ optimize our embedding model.
 
 ## Optimize the model with TensorRT
 
-Notes on the parameters inside of `tf.experimental.tensorrt.ConversionParams()`**:
+Notes on the parameters inside of tf.experimental.tensorrt.ConversionParams():
 
 * `precision_mode` defines the numerical precision of the operations in the to-be-converted 
   model.
