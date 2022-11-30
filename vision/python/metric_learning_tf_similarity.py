@@ -38,9 +38,8 @@ provides components that:
 
 TensorFlow Similarity can be installed easily via pip, as follows:
 
-```
-pip -q install tensorflow_similarity
-```
+$ conda install pip (ignore it if installed)
+$ pip -q install tensorflow_similarity
 
 ## Dataset samplers
 
@@ -57,9 +56,7 @@ containing a target number of classes and a target number of examples per class.
 Additionally, we restrict the sampler to only yield the subset of classes defined 
 in 'class_list', enabling us to train on a subset of the classes and then test how 
 the embedding generalizes to the unseen classes. This can be useful when working on 
-few-shot learning problems.
-
-The following cell creates a train_ds sample that:
+few-shot learning problems. The following cell creates a train_ds sample that:
 
 * Load the CIFAR-10 dataset from TFDS and take the `examples_per_class_per_batch`.
 * Ensure the sampler restricts the classes to those defined in `class_list`.
