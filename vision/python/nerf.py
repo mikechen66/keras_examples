@@ -51,7 +51,6 @@ multiple camera angles as shown in Figure 3.
 | **Figure 3**: Multiple camera angles <br>
 [Source: NeRF](https://arxiv.org/abs/2003.08934) |
 
-
 To understand camera poses in this context we have to first allow ourselves to think that a camera 
 is a mapping between the real-world and the 2-D image.
 
@@ -69,17 +68,18 @@ matrix that plays the crucial role of mapping the real world object onto an imag
 
 <img src="https://i.imgur.com/chvJct5.png" width="300" height="100"/>
 
-The camera-matrix is an *affine transform matrix* that is concatenated with a 3 x 1 column [image 
+The camera-matrix is an affine transform matrix that is concatenated with a 3 x 1 column [image 
 height, image width, focal length] to produce the pose matrix. This matrix is of dimensions 3 x 5 
 where the first 3 x 3 block is in the camera’s point of view. The axes are [down, right, backwards] 
 or [-y, x, z] where the camera is facing forwards -z.
 
 | ![camera-mapping](https://i.imgur.com/kvjqbiO.png) |
 | :---: |
-| **Figure 5**: The affine transformation. |
+| Figure 5: The affine transformation. |
 
-The COLMAP frame is [right, down, forwards] or [x, -y, -z]. Read more about COLMAP [here]
-(https://colmap.github.io/).
+The COLMAP frame is [right, down, forwards] or [x, -y, -z]. Read more about COLMAP as follows. 
+
+https://colmap.github.io/).
 
 ## Data pipeline
 
@@ -94,7 +94,7 @@ origin and d is the unit directional vector as shown in Figure 6.
 
 | ![img](https://i.imgur.com/ywrqlzt.gif) |
 | :---: |
-| **Figure 6**: `r(t) = o + td` where t is 3 |
+| Figure 6: `r(t) = o + td` where t is 3 |
 
 In Figure 7, we consider a ray, and we sample some random points on the ray. These sample points each 
 have a unique location (x, y, z) and the ray has a viewing angle (theta, phi). The viewing angle is
@@ -106,7 +106,7 @@ t2, t3) are randomly placed between the samples.
 
 | ![img](https://i.imgur.com/r9TS2wv.gif) |
 | :---: |
-| **Figure 7**: Sampling the points from a ray. |
+| Figure 7: Sampling the points from a ray. |
 
 Figure 8 showcases the entire sampling process in 3D, where you can see the rays coming out of the white 
 image. This means that each pixel will have its corresponding rays and each ray will be sampled at
@@ -114,30 +114,27 @@ distinct points.
 
 | ![3-d rays](https://i.imgur.com/hr4D2g2.gif) |
 | :---: |
-| **Figure 8**: Shooting rays from all the pixels of an image in 3-D |
+| Figure 8: Shooting rays from all the pixels of an image in 3-D |
 
 These sampled points act as the input to the NeRF model. The model is then asked to predict the RGB color 
 and the volume density at that point.
 
 | ![3-Drender](https://i.imgur.com/HHb6tlQ.png) |
 | :---: |
-| **Figure 9**: Data pipeline <br>
+| Figure 9: Data pipeline <br>
 [Source: NeRF](https://arxiv.org/abs/2003.08934) |
 
 ## NeRF model
 
-The model is a multi-layer perceptron (MLP), with ReLU as its non-linearity. An excerpt from the paper:
-
-We encourage the representation to be multiview-consistent by restricting the network to predict the volume 
+The model is a multi-layer perceptron (MLP), with ReLU as its non-linearity. An excerpt from the paper: We 
+encourage the representation to be multiview-consistent by restricting the network to predict the volume 
 density sigma as a function of only the location x, while allowing the RGB color c to be predicted as a 
 function of both location and viewing direction. To accomplish this, the MLP first processes the input 3D 
 coordinate x with 8 fully-connected layers (using ReLU activations and 256 channels per layer), and outputs 
-sigma and a 256-dimensional feature vector. This feature vector is then concatenated with the camera ray's 
+sigma and a 256-dimensional feature vector. The feature vector is then concatenated with the camera ray's 
 viewing direction and passed to one additional fully-connected layer (using a ReLU activation and 128 
-channels) that output the view-dependent RGB color.
-
-Here we have gone for a minimal implementation and have used 64 Dense units instead of 256 as mentioned in 
-the paper.
+channels) that output the view-dependent RGB color. Here we have gone for a minimal implementation and have 
+used 64 Dense units instead of 256 as mentioned in the paper.
 
 ## Visualize the training step
 
@@ -149,12 +146,11 @@ better. In your local system, you will see the training.gif file generated.
 ## Inference
 
 In this section, we ask the model to build novel views of the scene. The model was given 106 views of the 
-scene in the training step. The collections of training images cannot contain each and every angle of
-the scene. A trained model can represent the entire 3-D scene with a sparse set of training images.
-
-Here we provide different poses to the model and ask for it to give us the 2-D image corresponding to that 
-camera view. If we infer the model for all the 360-degree views, it should provide an overview of the
-entire scenery from all around.
+scene in the training step. The collections of training images cannot contain each and every angle of the 
+scene. A trained model can represent the entire 3-D scene with a sparse set of training images. Here we 
+provide different poses to the model and ask for it to give us the 2-D image corresponding to that camera 
+view. If we infer the model for all the 360-degree views, it should provide an overview of the entire 
+scenery from all around.
 
 ## Render 3D Scene
 
@@ -164,15 +160,15 @@ Here we will synthesize novel 3D views and stitch all of them together to render
 ### Visualize the video
 
 Here we can see the rendered 360 degree view of the scene. The model has successfully learned the entire 
-volumetric space through the sparse set of images in **only 20 epochs**. You can view the rendered video 
-saved locally, named `rgb_video.mp4`.
+volumetric space through the sparse set of images in only 20 epochs. You can view the rendered video saved 
+locally, named rgb_video.mp4.
 
 ![rendered-video](https://i.imgur.com/j2sIkzW.gif)
 
 ## Conclusion
 
 We have produced a minimal implementation of NeRF to provide an intuition of its core ideas and methodology. 
-This method has been used in various other works in the computer graphics space. We would like to encourage 
+The method has been used in various other works in the computer graphics space. We would like to encourage 
 our readers to use this code as an example and play with the hyperparameters and visualize the outputs. Below 
 we have also provided the outputs of the model trained for more epochs.
 
@@ -340,7 +336,7 @@ def render_flat_rays(ray_origins, ray_directions, near, far, num_samples, rand=F
 
 def map_fn(pose):
     """
-    Maps individual pose to flattened rays and sample points.
+    Map individual pose to flattened rays and sample points.
     Args:
         pose: The pose matrix of the camera.
     Returns:
@@ -418,12 +414,12 @@ def get_nerf_model(num_layers, num_pos):
 
 def render_rgb_depth(model, rays_flat, t_vals, rand=True, train=True):
     """
-    Generates the RGB image and depth map from model prediction.
+    Generate the RGB image and depth map from model prediction.
     Args:
-        model: The MLP model that is trained to predict the rgb and
+        model: The MLP model is trained to predict the rgb and
             volume density of the volumetric scene.
-        rays_flat: The flattened rays that serve as the input to
-            the NeRF model.
+        rays_flat: The flattened rays serve as the input to the 
+            NeRF model.
         t_vals: The sample points for the rays.
         rand: Choice to randomise the sampling strategy.
         train: Whether the model is in the training or testing phase.
@@ -500,7 +496,7 @@ class NeRF(keras.Model):
         # Get the trainable variables.
         trainable_variables = self.nerf_model.trainable_variables
 
-        # Get the gradeints of the trainiable variables with respect to the loss.
+        # Get the gradients of the trainiable variables with respect to the loss.
         gradients = tape.gradient(loss, trainable_variables)
 
         # Apply the grads and optimize the model.
@@ -620,6 +616,7 @@ test_recons_images, depth_maps = render_rgb_depth(
     train=False,
 )
 
+
 # Create subplots.
 fig, axes = plt.subplots(nrows=5, ncols=3, figsize=(10, 20))
 
@@ -686,12 +683,12 @@ rgb_frames = []
 batch_flat = []
 batch_t = []
 
+
 # Iterate over different theta value and generate scenes.
 for index, theta in tqdm(enumerate(np.linspace(0.0, 360.0, 120, endpoint=False))):
     # Get the camera to world matrix.
     c2w = pose_spherical(theta, -30.0, 4.0)
 
-    #
     ray_oris, ray_dirs = get_rays(H, W, focal, c2w)
     rays_flat, t_vals = render_flat_rays(
         ray_oris, ray_dirs, near=2.0, far=6.0, num_samples=NUM_SAMPLES, rand=False
@@ -705,8 +702,7 @@ for index, theta in tqdm(enumerate(np.linspace(0.0, 360.0, 120, endpoint=False))
         batch_t = [t_vals]
 
         rgb, _ = render_rgb_depth(
-            nerf_model, batched_flat, batched_t, rand=False, train=False
-        )
+            nerf_model, batched_flat, batched_t, rand=False, train=False)
 
         temp_rgb = [np.clip(255 * img, 0.0, 255.0).astype(np.uint8) for img in rgb]
 
@@ -714,6 +710,7 @@ for index, theta in tqdm(enumerate(np.linspace(0.0, 360.0, 120, endpoint=False))
     else:
         batch_flat.append(rays_flat)
         batch_t.append(t_vals)
+
 
 rgb_video = "rgb_video.mp4"
 imageio.mimwrite(rgb_video, rgb_frames, fps=30, quality=7, macro_block_size=None)
