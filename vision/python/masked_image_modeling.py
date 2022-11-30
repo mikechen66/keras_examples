@@ -51,9 +51,7 @@ https://keras.io/examples/vision/image_classification_with_vision_transformer/
 ## Imports
 
 The example requires TensorFlow Addons, which can be installed using the following
-command:
-
-# Install the packages in Miniconda Environment: 
+command in Miniconda Environment: 
 $ conda install pip
 $ pip install -U tensorflow-addons
 
@@ -91,7 +89,7 @@ into the original image.
 
 ## Patch encoding with masking
 
-Quoting the paper
+Quote the paper
 
 Following ViT, we divide an image into regular non-overlapping patches. Then we sample
 a subset of patches and mask (i.e., remove) the remaining ones. Our sampling strategy is
@@ -859,7 +857,6 @@ for layer in downstream_model.layers[:-1]:
 downstream_model.summary()
 
 # Prepare datasets for linear probing
-
 def prepare_data(images, labels, is_train=True):
     if is_train:
         augmentation_model = train_augmentation_model
@@ -881,7 +878,6 @@ val_ds = prepare_data(x_train, y_train, is_train=False)
 test_ds = prepare_data(x_test, y_test, is_train=False)
 
 # Perform linear probing
-
 linear_probe_epochs = 50
 linear_prob_lr = 0.1
 warm_epoch_percentage = 0.1
