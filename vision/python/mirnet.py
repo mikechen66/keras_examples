@@ -8,13 +8,13 @@ Description: Implementing the MIRNet architecture for low-light image enhancemen
 ## Introduction
 
 With the goal of recovering high-quality image content from its degraded version, image 
-restoration enjoys numerous applications, such as in photography, security,  medical 
-imaging, and remote sensing. In this example, we implement the **MIRNet**  model for 
-low-light image enhancement, a fully-convolutional architecture that learns an enriched 
-set of features that combines contextual info from multiple scales, while simultaneously 
-preserving the high-resolution spatial details.
+restoration enjoys numerous applications such as in photography, security, medical imaging, 
+and remote sensing. In the example, we implement the MIRNet model for low light image 
+enhancement, a fully-convolutional architecture that learns an enriched set of features 
+that combines contextual info from multiple scales, while simultaneously preserving the 
+high-resolution spatial details.
 
-### References:
+## References:
 
 - [Learning Enriched Features for Real Image Restoration and Enhancement]
   (https://arxiv.org/abs/2003.06792)
@@ -23,13 +23,12 @@ preserving the high-resolution spatial details.
 - [Two deterministic half-quadratic regularization algorithms for computed imaging]
   (https://ieeexplore.ieee.org/document/413553)
 
-## Downloading LOLDataset
+## Download LOL Dataset
 
-The **LoL Dataset** has been created for low-light image enhancement. It provides 485 images 
-for training and 15 for testing. Each image pair in the dataset consists of a low-light input 
-image and its corresponding well-exposed reference image.
+The LoL Dataset has been created for low light image enhancement. It provides 485 images 
+for training and 15 for testing. Each image pair in the dataset consists of a low light 
+input image and its corresponding well exposed reference image.
 
-shell
 $ gdown https://drive.google.com/uc?id=1DdGIJ4PZPlF2ikl8mNM9V-PdVxVLbQi6
 $ unzip -q lol_dataset.zip
 
@@ -47,55 +46,54 @@ Here are the main features of the MIRNet model:
   spatial scales, while maintaining the original high-resolution features to preserve
   precise spatial details.
 - A regularly repeated mechanism for information exchange, where the features across multi-
-  resolution branches are progressively fused together for improved representation learning.
+  resolution branches are progressively used together for improved representation learning.
 - A new approach to fuse multi-scale features using a selective kernel network that 
   dynamically combines variable receptive fields and faithfully preserves the original 
   feature information at each spatial resolution.
-- A recursive residual design that progressively breaks down the input signal in order 
-  to simplify the overall learning process, and allows the construction of very deep 
-  networks.
+- A recursive residual design that progressively breaks down the input signal in order to 
+  simplify the overall learning process, and allows the construction of very deep networks.
 
 ![](https://raw.githubusercontent.com/soumik12345/MIRNet/master/assets/mirnet_architecture.png)
 
 # Selective Kernel Feature Fusion
 
-The Selective Kernel Feature Fusion or SKFF module performs dynamic adjustment of receptive 
-fields via two operations: **Fuse** and **Select**. The Fuse operator generates global feature 
+The Selective Kernel Feature Fusion(SKFF) module performs dynamic adjustment of receptive 
+fields via two operations: Fuse and Select. The Fuse operator generates global feature 
 descriptors by combining the information from multi-resolution streams. The Select operator 
-uses these descriptors to recalibrate the feature maps (of different
-streams) followed by their aggregation.
+fuses the descriptors to recalibrate the feature maps (of different streams) followed by 
+their aggregation.
 
-**Fuse**: The SKFF receives inputs from three parallel convolution streams carrying different 
-scales of information. We first combine these multi-scale features using an element-wise sum, 
-on which we apply Global Average Pooling (GAP) across the spatial dimension. Next, we apply a 
-channel- downscaling convolution layer to generate a compact feature representation which passes 
-through three parallel channel-upscaling convolution layers (one for each resolution stream) 
-and provides us with three feature descriptors.
+Fuse: The SKFF receives inputs from three parallel convolution streams carrying different 
+scales of information. We first combine the multi-scale features using an elementwise sum, 
+on which we apply Global Average Pooling  across the spatial dimension. Next, we apply a 
+channel- downscaling convolution layer to generate a compact feature representation which 
+passes through three parallel channel-upscaling convolution layers (one for each resolution 
+stream) and provides us with three feature descriptors.
 
-**Select**: This operator applies the softmax function to the feature descriptors to obtain 
-the corresponding activations that are used to adaptively recalibrate multi-scale feature maps. 
-The aggregated features are defined as the sum of product of the corresponding multi-scale 
-feature and the feature descriptor.
+Select: This operator applies the softmax function to the feature descriptors to obtain 
+the corresponding activations that are used to adaptively recalibrate multi-scale feature 
+maps. The aggregated features are defined as the sum of product of the corresponding multi
+scale feature and the feature descriptor.
 
 ![](https://i.imgur.com/7U6ixF6.png)
 
 # Dual Attention Unit
 
-The Dual Attention Unit or DAU is used to extract features in the convolutional streams. While 
+The Dual Attention Unit(DAU) is used to extract features in the convolutional streams. While 
 the SKFF block fuses information across multi-resolution branches, we also need a mechanism to 
 share information within a feature tensor, both along the spatial and the channel dimensions 
 which is done by the DAU block. The DAU suppresses less useful features and only allows more 
-informative ones to pass further. This feature recalibration is achieved by using **Channel 
-Attention** and **Spatial Attention** mechanisms.
+informative ones to pass further. This feature recalibration is achieved by using Channel 
+Attention and Spatial Attention mechanisms.
 
-The **Channel Attention** branch exploits the inter-channel relationships of the conv feature 
-maps by applying squeeze and excitation operations. Given a feature map, the squeeze operation 
+The Channel Attention branch exploits the inter-channel relationships of the conv feature maps 
+by applying squeeze and excitation operations. Given a feature map, the squeeze operation 
 applies Global Average Pooling across spatial dimensions to encode global context, thus yield 
-a feature descriptor. The excitation operator passes this feature descriptor through two conv
+a feature descriptor. The excitation operator passes the feature descriptor through two conv
 layers followed by the sigmoid gating and generates activations. Finally, the output of Channel 
 Attention branch is obtained by rescaling the input feature map with the output activations.
 
-The **Spatial Attention** branch is designed to exploit the inter-spatial dependencies of conv 
+The Spatial Attention branch is designed to exploit the inter-spatial dependencies of conv 
 features. The goal of Spatial Attention is to generate a spatial attention map and use it to 
 recalibrate the incoming features. To generate the spatial attention map, the Spatial Attention 
 branch first independently applies Global Average Pooling and Max Pooling operations on input 
@@ -120,19 +118,22 @@ perform downsampling and upsampling operations that are used in the Multi-scale 
 
 ## Training
 
-- We train MIRNet using **Charbonnier Loss** as the loss function and **Adam
-  Optimizer** with a learning rate of `1e-4`.
-- We use **Peak Signal Noise Ratio** or PSNR as a metric which is an expression for the ratio 
-  between the maximum possible value (power) of a signal and the power of distorting noise that 
-  affects the quality of its representation.
+- We train MIRNet using Charbonnier Loss as the loss function and Adam Optimizer with a learning 
+  rate of `1e-4`.
+- We use Peak Signal Noise Ratio(PSNR) as a metric which is an expression for the ratio etween 
+  the maximum possible value (power) of a signal and the power of distorting noise that affects 
+  the quality of its representation.
 
-### Inference on Test Images
+## Inference on Test Images
 
-We compare the test images from LOLDataset enhanced by MIRNet with images
-enhanced via the `PIL.ImageOps.autocontrast()` function.
+We compare the test images from LOL Dataset enhanced by MIRNet with images enhanced via the `
+PIL.ImageOps.autocontrast()` function. You can use the trained model hosted on [Hugging Face Hub]
 
-You can use the trained model hosted on [Hugging Face Hub](https://huggingface.co/keras-io/lowlight-enhance-mirnet)
-and try the demo on [Hugging Face Spaces](https://huggingface.co/spaces/keras-io/Enhance_Low_Light_Image).
+https://huggingface.co/keras-io/lowlight-enhance-mirnet
+
+And try the demo on Hugging Face Spaces
+
+https://huggingface.co/spaces/keras-io/Enhance_Low_Light_Image).
 """
 
 
@@ -157,14 +158,12 @@ IMAGE_SIZE = 128
 BATCH_SIZE = 4
 MAX_TRAIN_IMAGES = 300
 
-
 def read_image(image_path):
     image = tf.io.read_file(image_path)
     image = tf.image.decode_png(image, channels=3)
     image.set_shape([None, None, 3])
     image = tf.cast(image, dtype=tf.float32) / 255.0
     return image
-
 
 def random_crop(low_image, enhanced_image):
     low_image_shape = tf.shape(low_image)[:2]
@@ -184,20 +183,17 @@ def random_crop(low_image, enhanced_image):
     ]
     return low_image_cropped, enhanced_image_cropped
 
-
 def load_data(low_light_image_path, enhanced_image_path):
     low_light_image = read_image(low_light_image_path)
     enhanced_image = read_image(enhanced_image_path)
     low_light_image, enhanced_image = random_crop(low_light_image, enhanced_image)
     return low_light_image, enhanced_image
 
-
 def get_dataset(low_light_images, enhanced_images):
     dataset = tf.data.Dataset.from_tensor_slices((low_light_images, enhanced_images))
     dataset = dataset.map(load_data, num_parallel_calls=tf.data.AUTOTUNE)
     dataset = dataset.batch(BATCH_SIZE, drop_remainder=True)
     return dataset
-
 
 train_low_light_images = sorted(glob("/home/mike/datasets/lol_dataset/our485/low/*"))[:MAX_TRAIN_IMAGES]
 train_enhanced_images = sorted(glob("/home/mike/datasets/lol_dataset/our485/high/*"))[:MAX_TRAIN_IMAGES]
@@ -208,10 +204,8 @@ val_enhanced_images = sorted(glob("/home/mike/datasets/lol_dataset/our485/high/*
 test_low_light_images = sorted(glob("/home/mike/datasets/lol_dataset/eval15/low/*"))
 test_enhanced_images = sorted(glob("/home/mike/datasets/lol_dataset/eval15/high/*"))
 
-
 train_dataset = get_dataset(train_low_light_images, train_enhanced_images)
 val_dataset = get_dataset(val_low_light_images, val_enhanced_images)
-
 
 print("Train Dataset:", train_dataset)
 print("Val Dataset:", val_dataset)
@@ -247,7 +241,6 @@ def selective_kernel_feature_fusion(
     aggregated_feature = layers.Add()([feature_1, feature_2, feature_3])
     return aggregated_feature
 
-
 # Dual Attention Unit
 def spatial_attention_block(input_tensor):
     average_pooling = tf.reduce_max(input_tensor, axis=-1)
@@ -258,7 +251,6 @@ def spatial_attention_block(input_tensor):
     feature_map = layers.Conv2D(1, kernel_size=(1, 1))(concatenated)
     feature_map = tf.nn.sigmoid(feature_map)
     return input_tensor * feature_map
-
 
 def channel_attention_block(input_tensor):
     channels = list(input_tensor.shape)[-1]
@@ -271,7 +263,6 @@ def channel_attention_block(input_tensor):
         filters=channels, kernel_size=(1, 1), activation="sigmoid"
     )(feature_activations)
     return input_tensor * feature_activations
-
 
 def dual_attention_unit_block(input_tensor):
     channels = list(input_tensor.shape)[-1]
@@ -286,7 +277,6 @@ def dual_attention_unit_block(input_tensor):
     concatenation = layers.Concatenate(axis=-1)([channel_attention, spatial_attention])
     concatenation = layers.Conv2D(channels, kernel_size=(1, 1))(concatenation)
     return layers.Add()([input_tensor, concatenation])
-
 
 # Multi-Scale Residual Block for Recursive Residual Modules
 def down_sampling_module(input_tensor):
@@ -303,7 +293,6 @@ def down_sampling_module(input_tensor):
     skip_branch = layers.Conv2D(channels * 2, kernel_size=(1, 1))(skip_branch)
     return layers.Add()([skip_branch, main_branch])
 
-
 def up_sampling_module(input_tensor):
     channels = list(input_tensor.shape)[-1]
     main_branch = layers.Conv2D(channels, kernel_size=(1, 1), activation="relu")(
@@ -317,7 +306,6 @@ def up_sampling_module(input_tensor):
     skip_branch = layers.UpSampling2D()(input_tensor)
     skip_branch = layers.Conv2D(channels // 2, kernel_size=(1, 1))(skip_branch)
     return layers.Add()([skip_branch, main_branch])
-
 
 # MRB Block
 def multi_scale_residual_block(input_tensor, channels):
@@ -354,7 +342,6 @@ def multi_scale_residual_block(input_tensor, channels):
     conv = layers.Conv2D(channels, kernel_size=(3, 3), padding="same")(skff_)
     return layers.Add()([input_tensor, conv])
 
-
 # MIRNet Model
 def recursive_residual_group(input_tensor, num_mrb, channels):
     conv1 = layers.Conv2D(channels, kernel_size=(3, 3), padding="same")(input_tensor)
@@ -362,7 +349,6 @@ def recursive_residual_group(input_tensor, num_mrb, channels):
         conv1 = multi_scale_residual_block(conv1, channels)
     conv2 = layers.Conv2D(channels, kernel_size=(3, 3), padding="same")(conv1)
     return layers.Add()([conv2, input_tensor])
-
 
 def mirnet_model(num_rrg, num_mrb, channels):
     input_tensor = keras.Input(shape=[None, None, 3])
@@ -372,7 +358,6 @@ def mirnet_model(num_rrg, num_mrb, channels):
     conv = layers.Conv2D(3, kernel_size=(3, 3), padding="same")(x1)
     output_tensor = layers.Add()([input_tensor, conv])
     return keras.Model(input_tensor, output_tensor)
-
 
 model = mirnet_model(num_rrg=3, num_mrb=2, channels=64)
 
@@ -418,7 +403,6 @@ plt.legend()
 plt.grid()
 plt.show()
 
-
 plt.plot(history.history["peak_signal_noise_ratio"], label="train_psnr")
 plt.plot(history.history["val_peak_signal_noise_ratio"], label="val_psnr")
 plt.xlabel("Epochs")
@@ -439,7 +423,6 @@ def plot_results(images, titles, figure_size=(12, 12)):
         plt.axis("off")
     plt.show()
 
-
 def infer(original_image):
     image = keras.preprocessing.image.img_to_array(original_image)
     image = image.astype("float32") / 255.0
@@ -453,7 +436,6 @@ def infer(original_image):
     output_image = Image.fromarray(np.uint8(output_image))
     original_image = Image.fromarray(np.uint8(original_image))
     return output_image
-
 
 # Inference on Test Images
 for low_light_image in random.sample(test_low_light_images, 6):
