@@ -28,7 +28,7 @@ The MobileViT architecture is comprised of the following blocks:
 * [MobileNetV2](https://arxiv.org/abs/1801.04381)-style inverted residual blocks for
   downsampling the resolution of the intermediate feature maps.
 * MobileViT blocks that combine the benefits of Transformers and convolutions. It is
-  presented in the figure below (taken from the [original paper]
+  presented in the figure below (taken from the original paper.
   (https://arxiv.org/abs/2110.02178)):
 
 Image download: 
@@ -65,8 +65,8 @@ Image Download
 
 ## Dataset preparation
 
-We use the [`tf_flowers`](https://www.tensorflow.org/datasets/catalog/tf_flowers) dataset 
-to demonstrate the model. Unlike other Transformer-based architectures, MobileViT uses a 
+We use the tf_flowers(https://www.tensorflow.org/datasets/catalog/tf_flowers) dataset to 
+demonstrate the model. Unlike other Transformer-based architectures, MobileViT uses a 
 simple augmentation pipeline primarily because it has the properties of a CNN. Authors 
 use a multi-scale data sampler to help the model learn representations of varied scales. 
 In this example, we discard this part.
