@@ -7,9 +7,9 @@ Description: Play Atari Breakout with a Deep Q-Network.
 
 ## Introduction
 
-This script shows an implementation of Deep Q-Learning on the BreakoutNoFrameskip-v4
-environment. The example requires the following dependencies: `baselines`, `atari-py`, `
-rows`. They can be installed via:
+This script shows an implementation of Deep Q-Learning on the BreakoutNoFrameskip-v4 environment. The example 
+requires the following dependencies: `baselines`, `atari-py`, `rows`. They can be installed them in the Linux's 
+Home directory. 
 
 $ git clone https://github.com/openai/baselines.git
 $ cd baselines
@@ -17,48 +17,65 @@ $ pip install -e .
 $ git clone https://github.com/openai/atari-py
 $ wget http://www.atarimania.com/roms/Roms.rar
 $ unrar x Roms.rar .
-# Could not install atari_py
-$ python -m atari_py.import_roms .
+$ cd
+$ python -m atari_py.import_roms /home/mike/baselines/ROMS
 
-### Deep Q-Learning
+Please note the original command has no "$ cd". Besises, the defautl command "$ python -m atari_py.import_roms ."
+is wrong. Users could not configure the atari_py. Users need to designate the above-written absolute path of ROMS
+in order to succussfully configure atari_py with ROMS. 
 
-As an agent takes actions and moves through an environment, it learns to map
-the observed state of the environment to an action. An agent will choose an action
-in a given state based on a "Q-value", which is a weighted reward based on the
-expected highest long-term reward. A Q-Learning Agent learns to perform its
-task such that the recommended action maximizes the potential future rewards.
-This method is considered an "Off-Policy" method,
-meaning its Q values are updated assuming that the best action was chosen, even
-if the best action was not chosen.
+# Deep Q-Learning
 
-### Atari Breakout
+As an agent takes actions and moves through an environment, it learns to map the observed state of the environ-
+ment to an action. An agent will choose an action in a given state based on a "Q-value", which is a weighted 
+reward based on the expected highest long-term reward. A Q-Learning Agent learns to perform its task such that 
+the recommended action maximizes the potential future rewards. This method is considered an "Off-Policy" method,
+meaning its Q values are updated assuming that the best action was chosen, even if the best action was not chosen.
 
-In this environment, a board moves along the bottom of the screen returning a ball that
-will destroy blocks at the top of the screen.
-The aim of the game is to remove all blocks and breakout of the
-level. The agent must learn to control the board by moving left and right, returning the
-ball and removing all the blocks without the ball passing the board.
+# Atari Breakout
 
-### Note
+In this environment, a board moves along the bottom of the screen returning a ball that will destroy blocks at 
+the top of the screen. The aim of the game is to remove all blocks and breakout of the level. The agent must learn 
+to control the board by moving left and right, returning the ball and removing all the blocks without the ball 
+passing the board.
 
-The Deepmind paper trained for "a total of 50 million frames (that is, around 38 days of
-game experience in total)". However this script will give good results at around 10
-million frames which are processed in less than 24 hours on a modern machine.
+## Note
 
-### References
+The Deepmind paper trained for "a total of 50 million frames (around 38 days of game experience in total)". However 
+this script will give good results at around 10 million frames which are processed in less than 24 hours on a modern 
+machine.
 
-- [Q-Learning](https://link.springer.com/content/pdf/10.1007/BF00992698.pdf)
-- [Deep Q-Learning](https://deepmind.com/research/publications/human-level-control-through-deep-reinforcement-learning)
+## References
+
+-Q-Learning: 
+ https://link.springer.com/content/pdf/10.1007/BF00992698.pdf)
+-Deep Q-Learning:
+ https://deepmind.com/research/publications/human-level-control-through-deep-reinforcement-learning)
+
+## Implement the Deep Q-Network
+
+This network learns an approximation of the Q-table, which is a mapping between the states and actions that an 
+agent will take. For every state we'll have four actions, that can be taken. The environment provides the state, 
+and the action is chosen by selecting the larger of the four Q-values predicted in the output layer.
+
+## Visualizations
+Before any training:
+![Imgur](https://i.imgur.com/rRxXF4H.gif)
+
+In early stages of training:
+![Imgur](https://i.imgur.com/X8ghdpL.gif)
+
+In later stages of training:
+![Imgur](https://i.imgur.com/Z1K6qBQ.gif)
 """
-"""
-## Setup
-"""
+
 
 from baselines.common.atari_wrappers import make_atari, wrap_deepmind
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
+
 
 # Configuration paramaters for the whole setup
 seed = 42
@@ -78,15 +95,8 @@ env = make_atari("BreakoutNoFrameskip-v4")
 env = wrap_deepmind(env, frame_stack=True, scale=True)
 env.seed(seed)
 
-"""
+
 ## Implement the Deep Q-Network
-
-This network learns an approximation of the Q-table, which is a mapping between
-the states and actions that an agent will take. For every state we'll have four
-actions, that can be taken. The environment provides the state, and the action
-is chosen by selecting the larger of the four Q-values predicted in the output layer.
-
-"""
 
 num_actions = 4
 
@@ -114,18 +124,16 @@ def create_q_model():
     return keras.Model(inputs=inputs, outputs=action)
 
 
-# The first model makes the predictions for Q-values which are used to
-# make a action.
+# The first model makes the predictions for Q-values for making a action.
 model = create_q_model()
-# Build a target model for the prediction of future rewards.
-# The weights of a target model get updated every 10000 steps thus when the
-# loss between the Q-values is calculated the target Q-value is stable.
+# Build a target model for the prediction of future rewards. The weights 
+# of a target model get updated every 10000 steps thus when the loss 
+# between the Q-values is calculated the target Q-value is stable.
 model_target = create_q_model()
 
 
-"""
 ## Train
-"""
+
 # In the Deepmind paper they use RMSProp however then Adam optimizer
 # improves training time
 optimizer = keras.optimizers.Adam(learning_rate=0.00025, clipnorm=1.0)
@@ -265,16 +273,3 @@ while True:  # Run until solved
     if running_reward > 40:  # Condition to consider the task solved
         print("Solved at episode {}!".format(episode_count))
         break
-
-
-"""
-## Visualizations
-Before any training:
-![Imgur](https://i.imgur.com/rRxXF4H.gif)
-
-In early stages of training:
-![Imgur](https://i.imgur.com/X8ghdpL.gif)
-
-In later stages of training:
-![Imgur](https://i.imgur.com/Z1K6qBQ.gif)
-"""
