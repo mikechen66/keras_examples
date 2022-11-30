@@ -9,7 +9,8 @@ Description: Example of using similarity metric learning on CIFAR-10 images.
 
 This example is based on the [Metric learning for image similarity search example]
 (https://keras.io/examples/vision/metric_learning/). We aim to use the same data 
-set but implement the model using [TensorFlow Similarity]
+set but implement the model using TensorFlow Similarity as follows. 
+
 (https://github.com/tensorflow/similarity).
 
 Metric learning aims to train models that can embed inputs into a high-dimensional 
@@ -17,9 +18,7 @@ space such that "similar" inputs are pulled closer to each other and "dissimilar
 inputs are pushed farther apart. Once trained, these models can produce embeddings 
 for downstream systems where such similarity is useful, for instance as a ranking 
 signal for search or as a form of pretrained embedding model for another supervised 
-problem.
-
-For a more detailed overview of metric learning, see:
+problem. For a more detailed, please see the weblinks as follows.
 
 * [What is metric learning?]
   (http://contrib.scikit-learn.org/metric-learn/introduction.html)
@@ -28,7 +27,7 @@ For a more detailed overview of metric learning, see:
 
 ## Setup
 
-The tutorial use the [TensorFlow Similarity] to learn and evaluate the similarity 
+The tutorial use the TensorFlow Similarity to learn and evaluate the similarity 
 embedding(https://github.com/tensorflow/similarity) library. TensorFlow Similarity 
 provides components that:
 
@@ -36,61 +35,61 @@ provides components that:
 * Make it easier to ensure that batches contain pairs of examples.
 * Enable the evaluation of the quality of the embedding.
 
-TensorFlow Similarity can be installed easily via pip, as follows:
+TensorFlow Similarity can be installed easily via pip in the Miniconda. 
 
 $ conda install pip (ignore it if installed)
 $ pip -q install tensorflow_similarity
 
 ## Dataset samplers
 
-We use the [CIFAR-10](https://www.tensorflow.org/datasets/catalog/cifar10) dataset 
+We use the CIFAR-10(https://www.tensorflow.org/datasets/catalog/cifar10) dataset 
 for this tutorial.
 
 For a similarity model to learn efficiently, each batch must contains at least 2
 examples of each class. To make this easy, tf_similarity offers `Sampler` objects 
 that enable you to set both the number of classes and the minimum number of examples 
 of each class per batch. The train and validation datasets will be created using the
-'TFDatasetMultiShotMemorySampler' object. This creates a sampler that loads datasets
-from [TensorFlow Datasets](https://www.tensorflow.org/datasets) and yields batches 
+TFDatasetMultiShotMemorySampler object. This creates a sampler that loads datasets
+from TensorFlow Datasets(https://www.tensorflow.org/datasets) and yields batches 
 containing a target number of classes and a target number of examples per class. 
 Additionally, we restrict the sampler to only yield the subset of classes defined 
-in 'class_list', enabling us to train on a subset of the classes and then test how 
+in class_list, enabling us to train on a subset of the classes and then test how 
 the embedding generalizes to the unseen classes. This can be useful when working on 
 few-shot learning problems. The following cell creates a train_ds sample that:
 
-* Load the CIFAR-10 dataset from TFDS and take the `examples_per_class_per_batch`.
-* Ensure the sampler restricts the classes to those defined in `class_list`.
+* Load the CIFAR-10 dataset from TFDS and take the examples_per_class_per_batch.
+* Ensure the sampler restricts the classes to those defined in class_list.
 * Ensure each batch contains 10 different classes with 8 examples each.
 
-We also create a validation dataset in the same way, but we limit the total number of
+We also create a validation dataset in the same way, but limit the total number of
 examples per class to 100 and the examples per class per batch is set to the default 
 of 2.
 
 ## Visualize the dataset
 
 The samplers shuffle the dataset, so we can get a sense of the dataset by plotting 
-the first 25 images. The samplers provide a `get_slice(begin, size)` method that 
+the first 25 images. The samplers provide a get_slice(begin, size) method that 
 allows us to easily select a block of samples. 
 
-Alternatively, we can use the `generate_batch()` method to yield a batch. This can 
+Alternatively, we can use the generate_batch() method to yield a batch. This can 
 allow us to check that a batch contains the expected number of classes and examples 
 per class.
 
 ## Embedding model
 
-Next we define a `SimilarityModel` using the Keras Functional API. The model is a 
-standard convnet with the addition of a `MetricEmbedding` layer that applies L2 
-normalization. The metric embedding layer is helpful when using 'Cosine' distance 
+Next we define a SimilarityModel using the Keras Functional API. The model is a 
+standard convnet with the addition of a MetricEmbedding layer that applies L2 
+normalization. The metric embedding layer is helpful when using Cosine distance 
 as we only care about the angle between the vectors.
 
-Additionally, the 'SimilarityModel' provides a number of helper methods for:
+Additionally, the SimilarityModel provides a number of helper methods for:
 
 * Indexing embedded examples
 * Performing example lookups
 * Evaluating the classification
 * Evaluating the quality of the embedding space
 
-See the [TensorFlow Similarity](https://github.com/tensorflow/similarity) for more 
+See the TensorFlow Similarity(https://github.com/tensorflow/similarity) for more 
 details.
 
 ## Similarity loss
@@ -98,16 +97,16 @@ details.
 The similarity loss expects batches containing at least 2 examples of each class, 
 from which it computes the loss over the pairwise positive and negative distances. 
 Here we use MultiSimilarityLoss()([paper](ihttps://arxiv.org/abs/1904.06627)), one 
-of several losses in [TensorFlow Similarity]. This loss use all informative pairs 
+of several losses in TensorFlow Similarity. This loss use all informative pairs 
 in the batch, taking into account the self-similarity, positive-similarity, and the 
 negative-similarity.
 
 ## Indexing
 
-Now that we have trained our model, we can create an index of examples. Here we
+Now that we have trained the model, we can create an index of examples. Here we
 batch index the first 200 validation examples by passing the x and y to the index
-along with storing the image in the data parameter. The `x_index` values are
-embedded and then added to the index to make them searchable. The `y_index` and
+along with storing the image in the data parameter. The x_index values are
+embedded and then added to the index to make them searchable. The y_index and
 data parameters are optional but allow the user to associate metadata with the
 embedded example.
 
@@ -125,7 +124,7 @@ match.
 Additionally, we pass in extra metrics to compute as well. All values in the output 
 are computed at the calibrated threshold.
 
-Finally, 'model.calibrate()'' returns a 'CalibrationResults' object containing:
+Finally, model.calibrate() returns a CalibrationResults object containing:
 
 * `"cutpoints"`: A Python dict mapping the cutpoint name to a dict containing the
   `ClassificationMetric` values associated with a particular distance threshold, e.g.,
@@ -140,7 +139,7 @@ It may be difficult to get a sense of the model quality from the metrics alone. 
 complementary approach is to manually inspect a set of query results to get a feel 
 for the match quality.
 
-Here we take 10 validation examples and plot them with their 5 nearest neighbors and 
+Here we take 10 validation examples and plot them with the 5 nearest neighbors and 
 the distances to the query example. Looking at the results, we see that while they 
 are imperfect they still represent meaningfully similar images, and that the model 
 is able to find similar images irrespective of their pose or image illumination.
@@ -152,16 +151,14 @@ reasons why calibration is critical for matching applications.
 
 ## Metrics
 
-We can also plot the extra metrics contained in the `CalibrationResults` to get 
-a sense of the matching performance as the distance threshold increases.
-
-The following plots show the Precision, Recall, and F1 Score. We can see that the 
-matching precision degrades as the distance increases, but that the percentage of 
-the queries that we accept as positive matches (recall) grows faster up to the 
-calibrated distance threshold.
+We can also plot the extra metrics contained in the CalibrationResults to get a 
+sense of the matching performance as the distance threshold increases.The following 
+plots show the Precision, Recall, and F1 Score. We can see the matching precision 
+degrades as the distance increases, but the percentage of the queries that we accept 
+as positive matches (recall) grows faster up to the calibrated distance threshold.
 
 We can also take 100 examples for each class and plot the confusion matrix for each 
-example and their nearest match. We also add an "extra" 10th class to represent the 
+example and their nearest match. We also add an extra 10th class to represent the 
 matches above the calibrated distance threshold.
 
 We see that most of the errors are between the animal classes with an interesting 
@@ -172,17 +169,15 @@ distance threshold.
 ## No Match
 
 We can plot the examples outside of the calibrated threshold to see which images
-are not matching any indexed examples.
-
-This may provide insight into what other examples may need to be indexed or surface 
-anomalous examples within the class.
+are not matching any indexed examples. It may provide insight into what other 
+examples may need to be indexed or surface anomalous examples within the class.
 
 ## Visualize clusters
 
 One of the best ways to quickly get a sense of the quality of how the model is doing 
 and understand it's short comings is to project the embedding into a 2D space.
 
-This allows us to inspect clusters of images and understand which classes are entangled.
+It allows us to inspect clusters of images and understand which classes are entangled.
 
 # Uncomment to run the interactive projector.
 # tfsim.visualization.projector(
@@ -204,7 +199,6 @@ import numpy as np
 
 import tensorflow as tf
 from tensorflow import keras
-
 import tensorflow_similarity as tfsim
 
 
@@ -216,18 +210,18 @@ print("TensorFlow Similarity:", tfsim.__version__)
 
 ## Dataset samplers
 
-# This determines the number of classes used during training.
-# Here we are using all the classes.
+# This determines the number of classes used during training.Here we are using 
+# all the classes.
 num_known_classes = 10
 class_list = random.sample(population=range(10), k=num_known_classes)
 
 classes_per_batch = 10
 # Passing multiple examples per class per batch ensures that each example has
 # multiple positive pairs. This can be useful when performing triplet mining or
-# when using losses like `MultiSimilarityLoss` or `CircleLoss` as these can
-# take a weighted mix of all the positive pairs. In general, more examples per
-# class will lead to more information for the positive pairs, while more classes
-# per batch will provide more varied information in the negative pairs. However,
+# when using losses like MultiSimilarityLoss or CircleLoss  as these can take 
+# a weighted mix of all the positive pairs. In general, more examples per class 
+# will lead to more information for the positive pairs, while more classes per 
+# batch will provide more varied information in the negative pairs. However, 
 # the losses compute the pairwise distance between the examples in a batch so
 # the upper limit of the batch size is restricted by the memory.
 examples_per_class_per_batch = 8
