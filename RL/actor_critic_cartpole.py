@@ -17,7 +17,7 @@ state of the environment to two possible outputs:
 2.Estimated rewards in the future: Sum of all rewards it expects to receive in the future. 
   The part of the agent responsible for this output is the critic.
 
-Agent and Critic learn to perform their tasks, such that the recommended actions from the 
+Agent and Critic learn to perform their tasks so that the recommended actions from the 
 actor maximize the rewards.
 
 ## CartPole-V0
@@ -30,9 +30,9 @@ the agent must learn to keep the pole from falling over.
 
 This network learns two functions. In our implementation, they share the initial layer.
 
-1.Actor: This takes as input the state of our environment and returns a probability value 
+1.Actor: This takes as input the state of the environment and returns a probability value 
   for each action in its action space.
-2.Critic: This takes as input the state of our environment and returns an estimate of total 
+2.Critic: This takes as input the state of the environment and returns an estimate of total 
   rewards in the future.
 
 ## References
@@ -41,6 +41,7 @@ This network learns two functions. In our implementation, they share the initial
 - [Actor Critic Method](https://hal.inria.fr/hal-00840470/document)
 
 ## Visualizations
+
 In early stages of training:
 ![Imgur](https://i.imgur.com/5gCs5kH.gif)
 
@@ -54,6 +55,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
+
 
 # Configure parameters for the whole setup
 seed = 42
