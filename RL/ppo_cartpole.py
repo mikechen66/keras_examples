@@ -49,7 +49,7 @@ For this example the following libraries are used:
 
 1. `numpy` for n-dimensional arrays
 2. `tensorflow` and `keras` for building the deep RL PPO agent
-3. `gym` for getting everything we need about the environment
+3. `gym` for getting everything we need about the environment(gym v0.15.7)
 4. `scipy.signal` for calculating the discounted cumulative sums of vectors
 
 ## Visualizations
